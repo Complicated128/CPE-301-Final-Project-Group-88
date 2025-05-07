@@ -76,9 +76,9 @@ unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;  // Debounce time in milliseconds
 
 void setup_timer_regs();
-void U0Init(int);
+void U0Init(int); // serial port initialization
 ISR(TIMER1_OVF_vect);
-unsigned char kbhit();
+void printMessage(const unsigned char[]);
 void putChar(unsigned char);
 
 // States the system will be in
@@ -91,31 +91,34 @@ enum SystemState {
 
 void setup() {
   // put your setup code here, to run once:
+  U0Init(9600);
+  const unsigned char msg[] = "Component Test Program";
+  printMessage(msg);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  switch (state) {
-    case DISABLED:
-      // Handle disabled state
+  // switch (state) {
+  //   case DISABLED:
+  //     // Handle disabled state
       
-      break;
-    case IDLE:
-      // Handle idle state
-      if (interruptButtonPressed) {
-        // Handle button press
-        interruptButtonPressed = false;
-      }
-      break;
-    case ERROR: 
-      // Handle error state
-      break;
-    case RUNNING:
-      // Handle running state
-      break;
-    default:
-      break; 
-  }
+  //     break;
+  //   case IDLE:
+  //     // Handle idle state
+  //     if (interruptButtonPressed) {
+  //       // Handle button press
+  //       interruptButtonPressed = false;
+  //     }
+  //     break;
+  //   case ERROR: 
+  //     // Handle error state
+  //     break;
+  //   case RUNNING:
+  //     // Handle running state
+  //     break;
+  //   default:
+  //     break; 
+  // }
 }
 
 void setup_timer_regs()
@@ -139,12 +142,16 @@ ISR(TIMER1_OVF_vect)
 
 }
 
-unsigned char kbhit()
-{
-
-}
-
 void putChar(unsigned char U0pdata)
 {
-  
+  while ((*myUCSR0A & TBE) == 0);
+  *myUDR0 = U0pdata;
+}
+
+void printMessage(const unsigned char msg[])
+{
+  for (int i = 0; msg[i] != '\0'; i++)
+  {
+    putChar(msg[i]);
+  }
 }
