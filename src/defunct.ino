@@ -30,7 +30,13 @@ bool lastRightButtonState = HIGH;
 unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;  // Debounce time in milliseconds
 
-
+// States the system will be in
+enum SystemState {
+  DISABLED,
+  IDLE,
+  ERROR,
+  RUNNING,
+};
 
 void setup() {
   // Initialize serial communication
