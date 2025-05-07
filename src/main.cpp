@@ -27,11 +27,23 @@ volatile unsigned char *ddrc = (unsigned char*) 0x27;
 volatile unsigned char *portc = (unsigned char*) 0x28;
 volatile unsigned char *pinc = (unsigned char*) 0x26;
 /**
+ * D20 (PD1), D21 (PD0)
+ */
+volatile unsigned char *ddrd = (unsigned char*) 0x2A;
+volatile unsigned char *portd = (unsigned char*) 0x2B;
+volatile unsigned char *pind = (unsigned char*) 0x29;
+/**
  * D3 (PE5)
  */
 volatile unsigned char *ddre = (unsigned char*) 0x2D;
 volatile unsigned char *porte = (unsigned char*) 0x2E;
 volatile unsigned char *pine = (unsigned char*) 0x2C;
+/**
+ * D54/A0 (PF0)
+ */
+volatile unsigned char *ddrf = (unsigned char*) 0x30;
+volatile unsigned char *portf = (unsigned char*) 0x31;
+volatile unsigned char *pinf = (unsigned char*) 0x2F;
 /**
  * D39 (PG2)
  */
@@ -58,6 +70,14 @@ volatile unsigned char *myUCSR0C = (unsigned char*) 0x00C2;
 volatile unsigned char *myUBRR0 = (unsigned char*) 0x00C4;
 volatile unsigned char *myUDR0 = (unsigned char*) 0x00C6;
 
+//Timer Pointers
+volatile unsigned char *myTCCR1A = (unsigned char*) 0x80;
+volatile unsigned char *myTCCR1B = (unsigned char*) 0x81;
+volatile unsigned char *myTCCR1C = (unsigned char*) 0x82;
+volatile unsigned char *myTIMSK1 = (unsigned char*) 0x6F;
+volatile unsigned char *myTIFR1 = (unsigned char*) 0x36;
+volatile unsigned int *myTCNT1 = (unsigned int*) 0x84;
+
 // Stepper motor pins and configuration
 const int stepsPerRevolution = 2048;  // 28BYJ-48 stepper has 2048 steps per revolution
 const int stepper1Pin = 43;           // IN1
@@ -78,8 +98,8 @@ unsigned long debounceDelay = 50;  // Debounce time in milliseconds
 void setup_timer_regs();
 void U0Init(int); // serial port initialization
 ISR(TIMER1_OVF_vect);
-void printMessage(const unsigned char[]);
-void putChar(unsigned char);
+void printMessage(unsigned char[]);
+void putChar(unsigned char); // smaller version of printMessage
 
 // States the system will be in
 enum SystemState {
@@ -92,7 +112,11 @@ enum SystemState {
 void setup() {
   // put your setup code here, to run once:
   U0Init(9600);
-  const unsigned char msg[] = "Component Test Program";
+  unsigned char msg[] = "Component Test Program";
+  printMessage(msg);
+
+
+  unsigned char msg[] = "Setup complete. Ready for testing.";
   printMessage(msg);
 }
 
@@ -139,7 +163,13 @@ void U0Init(int U0baud)
 
 ISR(TIMER1_OVF_vect)
 {
-
+  // *myTCCR1B &= 0xF8;
+  // *myTCNT1 = (unsigned int)(65535 - (unsigned long)(currentTicks));
+  // *myTCCR1B |= 0x01;
+  // if (currentTicks != 65535)
+  // {
+  //   *portb ^= 0x40;
+  // }
 }
 
 void putChar(unsigned char U0pdata)
@@ -148,7 +178,7 @@ void putChar(unsigned char U0pdata)
   *myUDR0 = U0pdata;
 }
 
-void printMessage(const unsigned char msg[])
+void printMessage(unsigned char msg[])
 {
   for (int i = 0; msg[i] != '\0'; i++)
   {
