@@ -60,6 +60,14 @@ void U0Init(int);
 ISR(TIMER1_OVF_vect);
 unsigned char kbhit();
 
+// States the system will be in
+enum SystemState {
+  DISABLED,
+  IDLE,
+  ERROR,
+  RUNNING,
+};
+
 void setup() {
   // put your setup code here, to run once:
   U0Init;
@@ -67,7 +75,27 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-
+  switch (state) {
+    case DISABLED:
+      // Handle disabled state
+      
+      break;
+    case IDLE:
+      // Handle idle state
+      if (interruptButtonPressed) {
+        // Handle button press
+        interruptButtonPressed = false;
+      }
+      break;
+    case ERROR: 
+      // Handle error state
+      break;
+    case RUNNING:
+      // Handle running state
+      break;
+    default:
+      break; 
+  }
 }
 
 void setup_timer_regs()
