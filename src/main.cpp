@@ -126,17 +126,19 @@ void setup() {
 // Water Level Threshold = 320
 States state = IDLE; // Set the initial state to IDLE
 void loop() {
-  if (temp <= 10) {
-    state = IDLE;
-  } else if (temp > 10) {
-    state = RUNNING;
-  } else if (state == ERROR && 
-  }
-  // put your main code here, to run repeatedly:
+  // if (temp <= 10) {
+  //   state = IDLE;
+  // } else if (temp > 10) {
+  //   state = RUNNING;
+  // } else if (state == ERROR)
+  //   state = IDLE;
+  // } else {
+  //   state = DISABLED;
+  // }
   // switch (state) {
   //   case DISABLED:
   //     // Handle disabled state
-      
+
   //     break;
   //   case IDLE:
   //     // Handle idle state
