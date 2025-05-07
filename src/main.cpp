@@ -101,6 +101,9 @@ bool lastRightButtonState = HIGH;
 unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;  // Debounce time in milliseconds
 
+// Initialize the liquid crystal display
+LiquidCrystal lcd(29, 27, 33, 35, 37, 39);
+
 void setup_timer_regs();
 void U0Init(int); // serial port initialization
 void adc_init();
@@ -128,11 +131,43 @@ void setup() {
   unsigned char msg2[] = "Setup complete. Ready for testing.\0";
   printMessage(msg2);
 }
-
+// Temperature Threshold = 10
+// Water Level Threshold = 320
+States state = IDLE; // Set the initial state to IDLE
 void loop() {
   unsigned int threshold = 0;
   unsigned int sensorVal = adc_read(0);
 
+  // if (temp <= 10) {
+  //   state = IDLE;
+  // } else if (temp > 10) {
+  //   state = RUNNING;
+  // } else if (state == ERROR)
+  //   state = IDLE;
+  // } else {
+  //   state = DISABLED;
+  // }
+  // switch (state) {
+  //   case DISABLED:
+  //     // Handle disabled state
+
+  //     break;
+  //   case IDLE:
+  //     // Handle idle state
+  //     if (interruptButtonPressed) {
+  //       // Handle button press
+  //       interruptButtonPressed = false;
+  //     }
+  //     break;
+  //   case ERROR: 
+  //     // Handle error state
+  //     break;
+  //   case RUNNING:
+  //     // Handle running state
+  //     break;
+  //   default:
+  //     break; 
+  // }
 }
 
 void setup_timer_regs()
