@@ -40,7 +40,7 @@ volatile unsigned char *porte = (unsigned char*) 0x2E;
 volatile unsigned char *pine = (unsigned char*) 0x2C;
 /**
  * D54/A0 (PF0)
- */
+ */ //ANALOG
 volatile unsigned char *ddrf = (unsigned char*) 0x30;
 volatile unsigned char *portf = (unsigned char*) 0x31;
 volatile unsigned char *pinf = (unsigned char*) 0x2F;
@@ -78,6 +78,12 @@ volatile unsigned char *myTIMSK1 = (unsigned char*) 0x6F;
 volatile unsigned char *myTIFR1 = (unsigned char*) 0x36;
 volatile unsigned int *myTCNT1 = (unsigned int*) 0x84;
 
+//Water sensor registers
+volatile unsigned char *myADMUX = (unsigned char*) 0x7C;
+volatile unsigned char *myADCSRB = (unsigned char*) 0x7B;
+volatile unsigned char *myADCSRA = (unsigned char*) 0x7A;
+volatile unsigned int *myADC_DATA = (unsigned int*) 0x78;
+
 // Stepper motor pins and configuration
 const int stepsPerRevolution = 2048;  // 28BYJ-48 stepper has 2048 steps per revolution
 const int stepper1Pin = 43;           // IN1
@@ -97,6 +103,8 @@ unsigned long debounceDelay = 50;  // Debounce time in milliseconds
 
 void setup_timer_regs();
 void U0Init(int); // serial port initialization
+void adc_init();
+unsigned int adc_read(unsigned char);
 ISR(TIMER1_OVF_vect);
 void printMessage(unsigned char[]);
 void putChar(unsigned char); // smaller version of printMessage
@@ -112,37 +120,19 @@ enum SystemState {
 void setup() {
   // put your setup code here, to run once:
   U0Init(9600);
-  unsigned char msg[] = "Component Test Program";
-  printMessage(msg);
+  adc_init();
+  unsigned char msg1[] = "Component Test Program\0";
+  printMessage(msg1);
 
 
-  unsigned char msg[] = "Setup complete. Ready for testing.";
-  printMessage(msg);
+  unsigned char msg2[] = "Setup complete. Ready for testing.\0";
+  printMessage(msg2);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  // switch (state) {
-  //   case DISABLED:
-  //     // Handle disabled state
-      
-  //     break;
-  //   case IDLE:
-  //     // Handle idle state
-  //     if (interruptButtonPressed) {
-  //       // Handle button press
-  //       interruptButtonPressed = false;
-  //     }
-  //     break;
-  //   case ERROR: 
-  //     // Handle error state
-  //     break;
-  //   case RUNNING:
-  //     // Handle running state
-  //     break;
-  //   default:
-  //     break; 
-  // }
+  unsigned int threshold = 0;
+  unsigned int sensorVal = adc_read(0);
+
 }
 
 void setup_timer_regs()
@@ -159,6 +149,31 @@ void U0Init(int U0baud)
   *myUCSR0B = 0x18;
   *myUCSR0C = 0x06;
   *myUBRR0 = tbaud;
+}
+
+void adc_init()
+{
+  *myADCSRA |= 0x80; // bit 7 1
+  *myADCSRA &= 0xBF; // bit 6 0 disable adc trigger
+  *myADCSRA &= 0xEF; // bit 5 0 disable adc interrupt
+  *myADCSRA &= 0xF8; // bit 2-0 0 slow reading
+
+  *myADCSRB &= 0xF0; // bit 3-0 0 gain bits
+
+  *myADMUX = 0x40; // bit 7 0, bit 6 1, bit 5-0 0
+  // resetting
+
+}
+
+unsigned int adc_read(unsigned char adc_num)
+{
+  *myADMUX &= 0xE0; // clear MUX4:0
+  *myADCSRB &= 0xDF; // clear MUX5
+  *myADMUX |= (adc_num & 0x1F); // channel 0 selection
+  *myADCSRA |= 0x40; // conversion
+  while ((*myADCSRA & 0x40) != 0);
+  unsigned int val = *myADC_DATA;
+  return val;
 }
 
 ISR(TIMER1_OVF_vect)
