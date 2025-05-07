@@ -66,7 +66,7 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(buttonInterruptPin), handleInterrupt, RISING);
   
   // Set stepper speed
-  myStepper.setSpeed(25);  // is slowwwww
+  myStepper.setSpeed(25);  // is slow
   
   Serial.println("Setup complete. Ready for testing.");
 }

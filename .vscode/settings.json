@@ -75,5 +75,27 @@
   "C_Cpp_Runner.useLeakSanitizer": false,
   "C_Cpp_Runner.showCompilationTime": false,
   "C_Cpp_Runner.useLinkTimeOptimization": false,
-  "C_Cpp_Runner.msvcSecureNoWarnings": false
+  "C_Cpp_Runner.msvcSecureNoWarnings": false,
+  "cSpell.words": [
+    "ddra",
+    "ddrb",
+    "ddrc",
+    "ddre",
+    "ddrh",
+    "ddrl",
+    "kbhit",
+    "pina",
+    "pinb",
+    "pinc",
+    "pinh",
+    "pinl",
+    "porta",
+    "portb",
+    "portc",
+    "porth",
+    "portl",
+    "STPRL",
+    "STPRR",
+    "vect"
+  ]
 }
