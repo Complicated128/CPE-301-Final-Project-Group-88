@@ -121,12 +121,9 @@ void adc_init();
 unsigned int adc_read(unsigned char);
 ISR(TIMER1_OVF_vect);
 void printMessage(unsigned char[]);
-<<<<<<< HEAD
 void U0putChar(unsigned char); // smaller version of printMessage
-=======
 void putChar(unsigned char); // smaller version of printMessage
 void handleInterrupt();
->>>>>>> 6d4a3090f7d2a00335f5895ce5772373e0c726f9
 
 // States the system will be in
 enum SystemState {
@@ -231,10 +228,6 @@ void setup_timer_regs()
   
 }
 
-void handleInterrupt()
-{
-  interruptButtonPressed = true;
-}
 
 ISR(TIMER1_OVF_vect)
 {
