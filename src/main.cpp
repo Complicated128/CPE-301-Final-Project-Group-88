@@ -51,7 +51,7 @@ volatile unsigned char *ddrg = (unsigned char*) 0x33;
 volatile unsigned char *portg = (unsigned char*) 0x34;
 volatile unsigned char *ping = (unsigned char*) 0x32;
 /**
- * D9 (PH6), D8 (PH5)
+ * D9 (PH6), D8 (PH5), D7 (PH4)
  */
 volatile unsigned char *ddrh = (unsigned char*) 0x101;
 volatile unsigned char *porth = (unsigned char*) 0x102;
@@ -93,6 +93,7 @@ const int buttonRightPin = 13;      // STPRL
 const int led1Pin = 10;             // LED G
 const int led2Pin = 9;              // LED YL
 const int led3Pin = 8;              // LED R
+const int led4Pin = 7;              // LED B
 
 // Stepper motor pins and configuration
 const int stepsPerRevolution = 2048;  // 28BYJ-48 stepper has 2048 steps per revolution
@@ -111,10 +112,17 @@ bool lastRightButtonState = HIGH;
 unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;  // Debounce time in milliseconds
 
+// Variables to flag machine states
+bool fanOn = false;
+bool displayTempHum = false;
+bool steeperOn = false;
+bool waterMonitor = false;
+
 // Initialize the liquid crystal display
 const int RS = 29, EN = 27, D4 = 33, D5 = 35, D6 = 37, D7 = 39;
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
+// Function prototypes
 void setup_timer_regs();
 void U0Init(int); // serial port initialization
 void adc_init();
@@ -168,6 +176,8 @@ void setup() {
   *porth &= (0x01 << 6);
   // digitalWrite(led3Pin, LOW);
   *porth &= (0x01 << 5);
+  // digitalWrite(led4Pin, LOW);
+  *porth &= (0x01 << 4);
 
   attachInterrupt(digitalPinToInterrupt(buttonInterruptPin), handleInterrupt, RISING);
 
@@ -190,36 +200,75 @@ void loop() {
     // Green LED (led1Pin) indicates relay state
     //digitalWrite(led1Pin, relaysOn);
   }
-  // if (temp <= 10) {
-  //   state = IDLE;
-  // } else if (temp > 10) {
-  //   state = RUNNING;
-  // } else if (state == ERROR)
-  //   state = IDLE;
-  // } else {
-  //   state = DISABLED;
-  // }
-  // switch (state) {
-  //   case DISABLED:
-  //     // Handle disabled state
 
-  //     break;
-  //   case IDLE:
-  //     // Handle idle state
-  //     if (interruptButtonPressed) {
-  //       // Handle button press
-  //       interruptButtonPressed = false;
-  //     }
-  //     break;
-  //   case ERROR: 
-  //     // Handle error state
-  //     break;
-  //   case RUNNING:
-  //     // Handle running state
-  //     break;
-  //   default:
-  //     break; 
-  // }
+  // Checks what state the system needs to be in
+  if (temp <= 10) {
+    state = IDLE;
+  } else if (temp > 10) {
+    state = RUNNING;
+  } else if (state == ERROR)
+    state = IDLE;
+  } else {
+    state = DISABLED;
+  }
+  switch (state) {
+    case DISABLED:
+      // Handle disabled state
+      fanOn = false;
+      displayTempHum = false;
+      steeperOn = True;
+      waterMonitor = false;
+      // Turn on yellow LED
+      *portb &= (0x01 << 4);
+      *porth |= (0x01 << 6);
+      *porth &= (0x01 << 5);
+      *porth &= (0x01 << 4);
+      break;
+    case IDLE:
+      // Handle idle state
+      if (interruptButtonPressed) {
+        // Handle button press
+        interruptButtonPressed = false;
+      }
+      fanOn = false;
+      displayTempHum = true;
+      steeperOn = True;
+      waterMonitor = true;
+      // Turn on green LED
+      *portb |= (0x01 << 4);
+      *porth &= (0x01 << 6);
+      *porth &= (0x01 << 5);
+      *porth &= (0x01 << 4);
+      break;
+    case ERROR: 
+      // Handle error state
+      lcd.clear();
+      lcd.print("Error: Low Water Level");
+      fanOn = false;
+      displayTempHum = true;
+      steeperOn = false;
+      waterMonitor = true;
+      // Turn on red LED
+      *portb &= (0x01 << 4);
+      *porth &= (0x01 << 6);
+      *porth |= (0x01 << 5);
+      *porth &= (0x01 << 4);
+      break;
+    case RUNNING:
+      // Handle running state
+      fanOn = true;
+      displayTempHum = true;
+      steeperOn = true;
+      waterMonitor = true;
+      // Turn on blue LED
+      *portb &= (0x01 << 4);
+      *porth &= (0x01 << 6);
+      *porth &= (0x01 << 5);
+      *porth |= (0x01 << 4);
+      break;
+    default:
+      break; 
+  }
 }
 
 void setup_timer_regs()
