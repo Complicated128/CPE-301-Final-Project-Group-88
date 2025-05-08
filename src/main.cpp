@@ -121,6 +121,7 @@ void adc_init();
 unsigned int adc_read(unsigned char);
 ISR(TIMER1_OVF_vect);
 void printMessage(unsigned char[]);
+void U0putChar(unsigned char); // smaller version of printMessage
 void putChar(unsigned char); // smaller version of printMessage
 void handleInterrupt();
 
@@ -227,29 +228,34 @@ void setup_timer_regs()
   
 }
 
-void U0Init(int U0baud)
+
+ISR(TIMER1_OVF_vect)
 {
-  unsigned long FCPU = 16000000;
-  unsigned int tbaud = (FCPU / 16 / U0baud - 1);
-  // same as (FCPU / (16 * U0baud)) - 1
-  *myUCSR0A = 0x20;
-  *myUCSR0B = 0x18;
-  *myUCSR0C = 0x06;
-  *myUBRR0 = tbaud;
+  // *myTCCR1B &= 0xF8;
+  // *myTCNT1 = (unsigned int)(65535 - (unsigned long)(currentTicks));
+  // *myTCCR1B |= 0x01;
+  // if (currentTicks != 65535)
+  // {
+  //   *portb ^= 0x40;
+  // }
 }
 
+/* ADC initialization
+ * ADC prescaler = 64
+ * ADC reference voltage = AVcc
+ * ADC channel = 0
+ * ADC interrupt = disabled
+ * ADC trigger = disabled
+ * ADC enable = enabled 
+*/
 void adc_init()
 {
-  *myADCSRA |= 0x80; // bit 7 1
-  *myADCSRA &= 0xBF; // bit 6 0 disable adc trigger
-  *myADCSRA &= 0xEF; // bit 5 0 disable adc interrupt
-  *myADCSRA &= 0xF8; // bit 2-0 0 slow reading
-
-  *myADCSRB &= 0xF0; // bit 3-0 0 gain bits
-
-  *myADMUX = 0x40; // bit 7 0, bit 6 1, bit 5-0 0
-  // resetting
-
+  *myADCSRA |= 0x80; // enable ADC
+  *myADCSRA &= 0xBF; // disable ADC trigger
+  *myADCSRA &= 0xEF; // disable ADC interrupt
+  *myADCSRA &= 0xF8; // set prescaler to 64
+  *myADCSRB &= 0xF0; // clear gain bits
+  *myADMUX = 0x40; // set reference voltage to AVcc
 }
 
 unsigned int adc_read(unsigned char adc_num)
@@ -263,23 +269,6 @@ unsigned int adc_read(unsigned char adc_num)
   return val;
 }
 
-ISR(TIMER1_OVF_vect)
-{
-  // *myTCCR1B &= 0xF8;
-  // *myTCNT1 = (unsigned int)(65535 - (unsigned long)(currentTicks));
-  // *myTCCR1B |= 0x01;
-  // if (currentTicks != 65535)
-  // {
-  //   *portb ^= 0x40;
-  // }
-}
-
-void putChar(unsigned char U0pdata)
-{
-  while ((*myUCSR0A & TBE) == 0);
-  *myUDR0 = U0pdata;
-}
-
 void printMessage(unsigned char msg[])
 {
   for (int i = 0; msg[i] != '\0'; i++)
@@ -288,7 +277,37 @@ void printMessage(unsigned char msg[])
   }
 }
 
-void handleInterrupt()
+/* Serial port initialization
+ * U0baud: baud rate
+ * FCPU: CPU frequency
+ * tbaud: baud rate timer value
+ */
+void U0Init(int U0baud)
 {
-  interruptButtonPressed = true;
+  unsigned long FCPU = 16000000;
+  unsigned int tbaud = (FCPU / 16 / U0baud - 1);
+  // same as (FCPU / (16 * U0baud)) - 1
+  *myUCSR0A = 0x20;
+  *myUCSR0B = 0x18;
+  *myUCSR0C = 0x06;
+  *myUBRR0 = tbaud;
+}
+
+unsigned char U0kbhit()
+{
+  return (*myUCSR0A & RDA) ? 1 : 0;
+}
+
+unsigned char U0getchar()
+{
+  unsigned char ch;
+  while(!(*myUCSR0A & 0x80));
+  ch = *myUDR0;
+  return ch;
+}
+
+void U0putchar(unsigned char U0pdata)
+{
+  while (!(*myUCSR0A & TBE));
+  *myUDR0 = U0pdata;
 }
