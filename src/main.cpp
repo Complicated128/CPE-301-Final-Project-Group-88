@@ -102,7 +102,8 @@ unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;  // Debounce time in milliseconds
 
 // Initialize the liquid crystal display
-LiquidCrystal lcd(29, 27, 33, 35, 37, 39);
+const int RS = 29, EN = 27, D4 = 33, D5 = 35, D6 = 37, D7 = 39;
+LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
 void setup_timer_regs();
 void U0Init(int); // serial port initialization
@@ -133,7 +134,7 @@ void setup() {
 }
 // Temperature Threshold = 10
 // Water Level Threshold = 320
-States state = IDLE; // Set the initial state to IDLE
+SystemState state = IDLE; // Set the initial state to IDLE
 void loop() {
   unsigned int threshold = 0;
   unsigned int sensorVal = adc_read(0);
