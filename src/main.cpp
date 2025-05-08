@@ -84,6 +84,16 @@ volatile unsigned char *myADCSRB = (unsigned char*) 0x7B;
 volatile unsigned char *myADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int *myADC_DATA = (unsigned int*) 0x78;
 
+// Define pin assignments
+const int buttonInterruptPin = 3;   // Button connected to interrupt pin
+const int relay1Pin = 53;           // Fan Relay In
+const int relay2Pin = 52;           // Pump Relay In
+const int buttonLeftPin = 12;       // STPRR
+const int buttonRightPin = 13;      // STPRL
+const int led1Pin = 10;             // LED G
+const int led2Pin = 9;              // LED YL
+const int led3Pin = 8;              // LED R
+
 // Stepper motor pins and configuration
 const int stepsPerRevolution = 2048;  // 28BYJ-48 stepper has 2048 steps per revolution
 const int stepper1Pin = 43;           // IN1
@@ -111,6 +121,7 @@ unsigned int adc_read(unsigned char);
 ISR(TIMER1_OVF_vect);
 void printMessage(unsigned char[]);
 void putChar(unsigned char); // smaller version of printMessage
+void handleInterrupt();
 
 // States the system will be in
 enum SystemState {
@@ -124,20 +135,60 @@ void setup() {
   // put your setup code here, to run once:
   U0Init(9600);
   adc_init();
-  unsigned char msg1[] = "Component Test Program\0";
-  printMessage(msg1);
+  printMessage((unsigned char*)"Component Test Program\0");
 
+  // pinMode(buttonInterruptPin, INPUT); // PE5
+  *ddre &= ~(0x01 << 5); 
+  // pinMode(buttonLeftPin, INPUT); // PB6
+  *ddrb &= ~(0x01 << 6); 
+  // pinMode(buttonRightPin, INPUT); // PB7
+  *ddrb &= ~(0x01 << 7); 
+  
+  // Set pin modes for relays and LEDs
+  // pinMode(relay1Pin, OUTPUT); //D53 = PB0
+  *ddrb |= (0x01 << 0);
+  // pinMode(relay2Pin, OUTPUT); //D52 = PB1
+  *ddrb |= (0x01 << 1);
+  // pinMode(led1Pin, OUTPUT); //D10 = PB4
+  *ddrb |= (0x01 << 4);
+  // pinMode(led2Pin, OUTPUT); //D9 = PH6
+  *ddrh |= (0x01 << 6);
+  // pinMode(led3Pin, OUTPUT); //D8 = PH5
+  *ddrh |= (0x01 << 5);
 
-  unsigned char msg2[] = "Setup complete. Ready for testing.\0";
-  printMessage(msg2);
+  // Initial states - relays and LEDs off
+  // digitalWrite(relay1Pin, LOW);
+  *portb &= ~(0x01 << 0);
+  // digitalWrite(relay2Pin, LOW);
+  *portb &= (0x01 << 1);
+  // digitalWrite(led1Pin, LOW);
+  *portb &= (0x01 << 4);
+  // digitalWrite(led2Pin, LOW);
+  *porth &= (0x01 << 6);
+  // digitalWrite(led3Pin, LOW);
+  *porth &= (0x01 << 5);
+
+  attachInterrupt(digitalPinToInterrupt(buttonInterruptPin), handleInterrupt, RISING);
+
+  printMessage((unsigned char*)"Setup complete. Ready for testing.\0");
 }
 // Temperature Threshold = 10
 // Water Level Threshold = 320
-States state = IDLE; // Set the initial state to IDLE
+SystemState state = IDLE; // Set the initial state to IDLE
 void loop() {
-  unsigned int threshold = 0;
+  unsigned int threshold = 320;
   unsigned int sensorVal = adc_read(0);
-
+  if (interruptButtonPressed)
+  {
+    printMessage((unsigned char*)"Interrupt button pressed- toggling relays\0");
+    static bool relaysOn = false;
+    relaysOn = !relaysOn;
+    //digitalWrite(relay1Pin, relaysOn);
+    //digitalWrite(relay2Pin, relaysOn);
+    
+    // Green LED (led1Pin) indicates relay state
+    //digitalWrite(led1Pin, relaysOn);
+  }
   // if (temp <= 10) {
   //   state = IDLE;
   // } else if (temp > 10) {
@@ -234,4 +285,9 @@ void printMessage(unsigned char msg[])
   {
     putChar(msg[i]);
   }
+}
+
+void handleInterrupt()
+{
+  interruptButtonPressed = true;
 }
