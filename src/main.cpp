@@ -121,7 +121,6 @@ void adc_init();
 unsigned int adc_read(unsigned char);
 ISR(TIMER1_OVF_vect);
 void printMessage(unsigned char[]);
-void U0putChar(unsigned char); // smaller version of printMessage
 void putChar(unsigned char); // smaller version of printMessage
 void handleInterrupt();
 
@@ -228,16 +227,20 @@ void setup_timer_regs()
   
 }
 
-
-ISR(TIMER1_OVF_vect)
+/* Serial port initialization
+ * U0baud: baud rate
+ * FCPU: CPU frequency
+ * tbaud: baud rate timer value
+ */
+void U0Init(int U0baud)
 {
-  // *myTCCR1B &= 0xF8;
-  // *myTCNT1 = (unsigned int)(65535 - (unsigned long)(currentTicks));
-  // *myTCCR1B |= 0x01;
-  // if (currentTicks != 65535)
-  // {
-  //   *portb ^= 0x40;
-  // }
+  unsigned long FCPU = 16000000;
+  unsigned int tbaud = (FCPU / 16 / U0baud - 1);
+  // same as (FCPU / (16 * U0baud)) - 1
+  *myUCSR0A = 0x20;
+  *myUCSR0B = 0x18;
+  *myUCSR0C = 0x06;
+  *myUBRR0 = tbaud;
 }
 
 /* ADC initialization
@@ -269,6 +272,17 @@ unsigned int adc_read(unsigned char adc_num)
   return val;
 }
 
+ISR(TIMER1_OVF_vect)
+{
+  // *myTCCR1B &= 0xF8;
+  // *myTCNT1 = (unsigned int)(65535 - (unsigned long)(currentTicks));
+  // *myTCCR1B |= 0x01;
+  // if (currentTicks != 65535)
+  // {
+  //   *portb ^= 0x40;
+  // }
+}
+
 void printMessage(unsigned char msg[])
 {
   for (int i = 0; msg[i] != '\0'; i++)
@@ -277,37 +291,13 @@ void printMessage(unsigned char msg[])
   }
 }
 
-/* Serial port initialization
- * U0baud: baud rate
- * FCPU: CPU frequency
- * tbaud: baud rate timer value
- */
-void U0Init(int U0baud)
-{
-  unsigned long FCPU = 16000000;
-  unsigned int tbaud = (FCPU / 16 / U0baud - 1);
-  // same as (FCPU / (16 * U0baud)) - 1
-  *myUCSR0A = 0x20;
-  *myUCSR0B = 0x18;
-  *myUCSR0C = 0x06;
-  *myUBRR0 = tbaud;
-}
-
-unsigned char U0kbhit()
-{
-  return (*myUCSR0A & RDA) ? 1 : 0;
-}
-
-unsigned char U0getchar()
-{
-  unsigned char ch;
-  while(!(*myUCSR0A & 0x80));
-  ch = *myUDR0;
-  return ch;
-}
-
-void U0putchar(unsigned char U0pdata)
+void putChar(unsigned char U0pdata)
 {
   while (!(*myUCSR0A & TBE));
   *myUDR0 = U0pdata;
+}
+
+void handleInterrupt()
+{
+  interruptButtonPressed = true;
 }
