@@ -112,12 +112,6 @@ bool lastRightButtonState = HIGH;
 unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;  // Debounce time in milliseconds
 
-// Variables to flag machine states
-bool fanOn = false;
-bool displayTempHum = false;
-bool steeperOn = false;
-bool waterMonitor = false;
-
 // Initialize the liquid crystal display
 const int RS = 29, EN = 27, D4 = 33, D5 = 35, D6 = 37, D7 = 39;
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
@@ -140,10 +134,35 @@ enum SystemState {
   RUNNING,
 };
 
+// Global variables
+SystemState currentState = IDLE;
+SystemState previousState = IDLE;
+bool fanOn = false;
+bool displayTH = false;
+bool steeperOn = false;
+bool waterMonitor = false;
+int temp = -1;
+int hum = -1;
+bool needClear = true;
+bool interruptButtonPressed = false;
+// Temperature Threshold = 10
+// Water Level Threshold = 320
+
 void setup() {
-  // put your setup code here, to run once:
+  // Start the UART serial communication
   U0Init(9600);
+  // Setup the ADC
   adc_init();
+  // Real Time Clock setup
+  rtc.begin();
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  // Setuup temp and humidity sensor
+  dht.begin();
+  // Setup the LCD
+  lcd.begin(16, 2);
+  // Set stepper motor speed
+  myStepper.setSpeed(10); // Set speed to 10 RPM
+
   printMessage((unsigned char*)"Component Test Program\0");
 
   // pinMode(buttonInterruptPin, INPUT); // PE5
@@ -179,13 +198,12 @@ void setup() {
   // digitalWrite(led4Pin, LOW);
   *porth &= (0x01 << 4);
 
+  // interrupt setup
   attachInterrupt(digitalPinToInterrupt(buttonInterruptPin), handleInterrupt, RISING);
 
   printMessage((unsigned char*)"Setup complete. Ready for testing.\0");
 }
-// Temperature Threshold = 10
-// Water Level Threshold = 320
-SystemState state = IDLE; // Set the initial state to IDLE
+
 void loop() {
   unsigned int waterThreshold = 320;
   unsigned int sensorVal = adc_read(0);
@@ -197,25 +215,26 @@ void loop() {
     //digitalWrite(relay1Pin, relaysOn);
     //digitalWrite(relay2Pin, relaysOn);
     
-    // Green LED (led1Pin) indicates relay state
+    // Green LED (led1Pin) indicates relay currentState
     //digitalWrite(led1Pin, relaysOn);
   }
 
-  // Checks what state the system needs to be in
+  // Checks what currentState the system needs to be in
   if (temp <= 10) {
-    state = IDLE;
+    currentState = IDLE;
   } else if (temp > 10) {
-    state = RUNNING;
-  } else if (state == ERROR)
-    state = IDLE;
+    currentState = RUNNING;
+  } else if (currentState == ERROR)
+    currentState = IDLE;
   } else {
-    state = DISABLED;
+    currentState = DISABLED;
   }
-  switch (state) {
+  // Change the currentState of the system
+  switch (currentState) {
     case DISABLED:
-      // Handle disabled state
+      // Handle disabled currentState
       fanOn = false;
-      displayTempHum = false;
+      displayTH = false;
       steeperOn = True;
       waterMonitor = false;
       // Turn on yellow LED
@@ -225,13 +244,9 @@ void loop() {
       *porth &= (0x01 << 4);
       break;
     case IDLE:
-      // Handle idle state
-      if (interruptButtonPressed) {
-        // Handle button press
-        interruptButtonPressed = false;
-      }
+      // Handle idle currentState
       fanOn = false;
-      displayTempHum = true;
+      displayTH = true;
       steeperOn = True;
       waterMonitor = true;
       // Turn on green LED
@@ -241,11 +256,11 @@ void loop() {
       *porth &= (0x01 << 4);
       break;
     case ERROR: 
-      // Handle error state
+      // Handle error currentState
       lcd.clear();
       lcd.print("Error: Low Water Level");
       fanOn = false;
-      displayTempHum = true;
+      displayTH = true;
       steeperOn = false;
       waterMonitor = true;
       // Turn on red LED
@@ -255,9 +270,9 @@ void loop() {
       *porth &= (0x01 << 4);
       break;
     case RUNNING:
-      // Handle running state
+      // Handle running currentState
       fanOn = true;
-      displayTempHum = true;
+      displayTH = true;
       steeperOn = true;
       waterMonitor = true;
       // Turn on blue LED
@@ -268,7 +283,22 @@ void loop() {
       break;
     default:
       break; 
-  }
+    }
+    // Check water level and update currentState if needed
+    if (waterMonitor) {
+
+
+    }
+    // Set stepper motor speed
+    if (steeperOn) {
+
+    }
+    //display temperature and humidity
+    if (displayTH) {
+
+    }
+
+    previousState = currentState;
 }
 
 void setup_timer_regs()
@@ -350,4 +380,25 @@ void handleInterrupt()
 {
   
   interruptButtonPressed = true;
+}
+
+void displayTimeStamp(){
+  DateTime now = rtc.now(); 
+  String date;
+  date = now.toString("YYYY-MM-DD hh:mm:ss");
+  for(int i = 0; i < date.length(); ++i){
+    U0putChar(date[i]);
+  }
+  U0putChar('\n');
+}
+
+void displayTempAndHum(){
+  if(needClear){
+    lcd.clear();
+    needClear = false;
+  }
+  lcd.setCursor(0,0);
+  lcd.print("Temp: " + (String)temp + char(223) + "C");
+  lcd.setCursor(0,1);
+  lcd.print("Humidity: " + (String)hum);
 }
