@@ -177,7 +177,7 @@ void setup() {
 // Water Level Threshold = 320
 SystemState state = IDLE; // Set the initial state to IDLE
 void loop() {
-  unsigned int threshold = 320;
+  unsigned int waterThreshold = 320;
   unsigned int sensorVal = adc_read(0);
   if (interruptButtonPressed)
   {
