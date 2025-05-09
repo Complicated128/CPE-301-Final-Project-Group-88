@@ -107,14 +107,28 @@ volatile unsigned int *myADC_DATA = (unsigned int *)0x78;
 Stepper myStepper(STEPS_PER_REV, STEPPER_PIN1, STEPPER_PIN3, STEPPER_PIN2, STEPPER_PIN4);
 
 // Initialize the liquid crystal display
-const int RS = 29, EN = 27, D4 = 33, D5 = 35, D6 = 37, D7 = 39;
-LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
+#define LC_RS 29
+#define LC_EN 27
+#define LC_D4 33
+#define LC_D5 35
+#define LC_D6 37
+#define LC_D7 39
+LiquidCrystal lcd(LC_RS, LC_EN, LC_D4, LC_D5, LC_D6, LC_D7);
 
 // Initialize RTC
 RTC_DS1307 rtc;
 
 // Initialize DHT
 DHT dht(25, DHT11);
+
+// States the system will be in
+enum SystemState
+{
+   DISABLED,
+   IDLE,
+   ERROR,
+   RUNNING,
+};
 
 // Function prototypes
 void U0Init(int); // serial port initialization
@@ -127,16 +141,14 @@ void displayTimeStamp();
 void displayTempAndHum(unsigned int, unsigned int);
 void stateCheck(unsigned int, unsigned int);
 
-// States the system will be in
-enum SystemState
-{
-   DISABLED,
-   IDLE,
-   ERROR,
-   RUNNING,
-};
+// Global variables to determine button hold
+volatile bool buttonPressed = false;
+volatile unsigned long startTime = 0;
+volatile unsigned long pressDuration = 0;
+volatile bool buttonHold = false;
 
 // Global variables
+<<<<<<< HEAD
 SystemState currentState = DISABLED;
 SystemState previousState = DISABLED;
 bool interruptBtn = false;
@@ -146,15 +158,29 @@ bool waterMonitor = false;
 bool needClear = false;
 unsigned int waterThreshold = 320; // value to change
 unsigned int tempThreshold = 10;
+=======
+SystemState currentState = IDLE;
+SystemState previousState = IDLE;
+volatile bool interruptBtn = false;
+volatile bool fanOn = false;
+volatile bool displayTH = false;
+volatile bool stepperState = false;
+volatile bool waterMonitor = false;
+volatile bool needClear = false;
+volatile unsigned int waterThreshold = 320; // value to change
+volatile unsigned int tempThreshold = 10;   // value to change
+volatile unsigned long pressStartTime = 0;
+volatile unsigned long pressDuration = 0;
+>>>>>>> de5d76ec82bda7aa5b9025058226d75278ab1b64
 
 void setup()
 {
-   U0Init(9600); // Start the UART serial communication
-   adc_init(); // Setup the ADC
-   rtc.begin(); // Real Time Clock setup
+   U0Init(9600);                                   // Start the UART serial communication
+   adc_init();                                     // Setup the ADC
+   rtc.begin();                                    // Real Time Clock setup
    rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // Setuup temp and humidity sensor
-   dht.begin(); // start temp and humidity
-   lcd.begin(16, 2); // Setup the LCD
+   dht.begin();                                    // start temp and humidity
+   lcd.begin(16, 2);                               // Setup the LCD
 
    printMessage((unsigned char *)"Component Test Program\0");
 
@@ -221,16 +247,23 @@ void loop()
    unsigned int tempVal = dht.readTemperature();
    if (interruptBtn)
    {
-      printMessage((unsigned char *)"Interrupt button pressed- toggling relays\0");
-      // digitalWrite(relay1Pin, relaysOn);
-      *portb |= (0x01 << 0);
-      // digitalWrite(relay2Pin, relaysOn);
-      *portb |= (0x01 << 2);
-      // // Green LED (led1Pin) indicates relay currentState
-      // // digitalWrite(led1Pin, relaysOn);
-      // *portb |= (0x01 << 4);
+      if (buttonHold)
+      {
+         printMessage((unsigned char *)"Interrupt button held\0");
+         setup(); // not sure if its required
+         currentState = IDLE;
+      }
+      else
+      {
+         printMessage((unsigned char *)"Interrupt button pressed\0");
+         currentState = DISABLED;
+      }
+      interruptBtn = false;
    }
-
+   if (currentState == DISABLED)
+   {
+      return;
+   }
    // Checks what currentState the system needs to be in
    stateCheck(waterVal, tempVal);
    if (currentState != previousState)
@@ -251,7 +284,11 @@ void loop()
       *porth |= (0x01 << 6);
       *porth &= (0x01 << 5);
       *porth &= (0x01 << 4);
+      // Turn off fans and pump
+      *portb &= (0x01 << 0);
+      *portb &= (0x01 << 1);
       break;
+
    case IDLE:
       // Handle idle currentState
       fanOn = false;
@@ -262,7 +299,11 @@ void loop()
       *porth &= (0x01 << 6);
       *porth &= (0x01 << 5);
       *porth &= (0x01 << 4);
-      break; 
+      // Turn off fans and pump
+      *portb &= (0x01 << 0);
+      *portb &= (0x01 << 1);
+      break;
+
    case ERROR:
       // Handle error currentState
       lcd.clear();
@@ -275,7 +316,11 @@ void loop()
       *porth &= (0x01 << 6);
       *porth |= (0x01 << 5);
       *porth &= (0x01 << 4);
+      // Turn off fans and pump
+      *portb &= (0x01 << 0);
+      *portb &= (0x01 << 1);
       break;
+
    case RUNNING:
       // Handle running currentState
       fanOn = true;
@@ -286,7 +331,11 @@ void loop()
       *porth &= (0x01 << 6);
       *porth &= (0x01 << 5);
       *porth |= (0x01 << 4);
+      // Turn on fans and pump
+      *portb |= (0x01 << 0);
+      *portb |= (0x01 << 1);
       break;
+
    default:
       break;
    }
@@ -356,7 +405,26 @@ void putChar(unsigned char U0pdata)
 
 void handleInterrupt()
 {
-   interruptBtn = true;
+   if (!buttonPressed) // will be true, button pressed
+   {
+      buttonPressed = true;
+      startTime = millis();
+   }
+   else // button released
+   {
+      buttonPressed = false;
+      pressDuration = millis() - startTime;
+      if (pressDuration >= 3000)
+      {
+         buttonHold = true;
+      }
+      else
+      {
+         buttonHold = false;
+      }
+
+      interruptBtn = true;
+   }
 }
 
 void displayTimeStamp()
@@ -365,7 +433,7 @@ void displayTimeStamp()
    String date;
    char format[] = "YYYY-MM-DD hh:mm:ss";
    date = now.toString(format);
-   printMessage((unsigned char*) format);
+   printMessage((unsigned char *)format);
    // TODO: LCD
 }
 
@@ -392,8 +460,11 @@ void stateCheck(unsigned int waterLevel, unsigned int tempLevel)
    {
       currentState = IDLE;
    }
-   else if (waterLevel <= waterThreshold)
+   if (waterLevel <= waterThreshold)
    {
+      // both cases of running -> error and idle -> error have similar cases
+      // running -> error requires waterLevel < waterThreshold
+      // idle -> error requires waterLevel <= waterThreshold
       currentState = ERROR;
    }
 }
