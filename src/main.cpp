@@ -7,6 +7,17 @@
 #define RDA 0x80
 #define TBE 0x20
 
+// Define pin assignments
+#define INTERRUPT_PIN 3
+#define FAN_RELAY_PIN 53
+#define PUMP_RELAY_PIN 52
+#define LEFT_STEPPER_PIN 12
+#define RIGHT_STEPPER_PIN 13
+#define LED_PIN1 = 10
+#define LED_PIN2 = 9
+#define LED_PIN3 = 8
+#define LED_PIN4 = 7
+
 // setting up vars for ports
 /**
  * D29 (PA7), D27 (PA5), D25 (PA3)
@@ -85,26 +96,15 @@ volatile unsigned char *myADCSRB = (unsigned char *)0x7B;
 volatile unsigned char *myADCSRA = (unsigned char *)0x7A;
 volatile unsigned int *myADC_DATA = (unsigned int *)0x78;
 
-// Define pin assignments
-const int buttonInterruptPin = 3; // Button connected to interrupt pin
-const int relay1Pin = 53;         // Fan Relay In
-const int relay2Pin = 52;         // Pump Relay In
-const int buttonLeftPin = 12;     // STPRR
-const int buttonRightPin = 13;    // STPRL
-const int led1Pin = 10;           // LED G
-const int led2Pin = 9;            // LED YL
-const int led3Pin = 8;            // LED R
-const int led4Pin = 7;            // LED B
-
 // Stepper motor pins and configuration
-const int stepsPerRevolution = 2048; // 28BYJ-48 stepper has 2048 steps per revolution
-const int stepper1Pin = 43;          // IN1
-const int stepper2Pin = 45;          // IN2
-const int stepper3Pin = 47;          // IN3
-const int stepper4Pin = 49;          // IN4
+#define STEPS_PER_REV 2048
+#define STEPPER_PIN1 43
+#define STEPPER_PIN2 45
+#define STEPPER_PIN3 47
+#define STEPPER_PIN4 49
 
 // Initialize stepper library
-Stepper myStepper(stepsPerRevolution, stepper1Pin, stepper3Pin, stepper2Pin, stepper4Pin);
+Stepper myStepper(STEPS_PER_REV, STEPPER_PIN1, STEPPER_PIN3, STEPPER_PIN2, STEPPER_PIN4);
 
 // Initialize the liquid crystal display
 const int RS = 29, EN = 27, D4 = 33, D5 = 35, D6 = 37, D7 = 39;
@@ -144,6 +144,7 @@ bool fanOn = false;
 bool displayTH = false;
 bool stepperState = false;
 bool waterMonitor = false;
+bool needClear = false;
 unsigned int waterThreshold = 320; // value to change
 unsigned int tempThreshold = 10;
 // Temperature Threshold = 10
@@ -151,17 +152,12 @@ unsigned int tempThreshold = 10;
 
 void setup()
 {
-   // Start the UART serial communication
-   U0Init(9600);
-   // Setup the ADC
-   adc_init();
-   // Real Time Clock setup
-   rtc.begin();
-   rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-   // Setuup temp and humidity sensor
-   dht.begin();
-   // Setup the LCD
-   lcd.begin(16, 2);
+   U0Init(9600); // Start the UART serial communication
+   adc_init(); // Setup the ADC
+   rtc.begin(); // Real Time Clock setup
+   rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // Setuup temp and humidity sensor
+   dht.begin(); // start temp and humidity
+   lcd.begin(16, 2); // Setup the LCD
 
    printMessage((unsigned char *)"Component Test Program\0");
 
@@ -174,32 +170,32 @@ void setup()
 
    // Set pin modes for relays and LEDs
    // pinMode(relay1Pin, OUTPUT); //D53 = PB0
-   *ddrb |= (0x01 << 0);
    // pinMode(relay2Pin, OUTPUT); //D52 = PB1
-   *ddrb |= (0x01 << 1);
    // pinMode(led1Pin, OUTPUT); //D10 = PB4
-   *ddrb |= (0x01 << 4);
    // pinMode(led2Pin, OUTPUT); //D9 = PH6
-   *ddrh |= (0x01 << 6);
    // pinMode(led3Pin, OUTPUT); //D8 = PH5
+   *ddrb |= (0x01 << 0);
+   *ddrb |= (0x01 << 1);
+   *ddrb |= (0x01 << 4);
+   *ddrh |= (0x01 << 6);
    *ddrh |= (0x01 << 5);
 
    // Initial states - relays and LEDs off
    // digitalWrite(relay1Pin, LOW);
-   *portb &= ~(0x01 << 0);
    // digitalWrite(relay2Pin, LOW);
-   *portb &= (0x01 << 1);
    // digitalWrite(led1Pin, LOW);
-   *portb &= (0x01 << 4);
    // digitalWrite(led2Pin, LOW);
-   *porth &= (0x01 << 6);
    // digitalWrite(led3Pin, LOW);
-   *porth &= (0x01 << 5);
    // digitalWrite(led4Pin, LOW);
+   *portb &= ~(0x01 << 0);
+   *portb &= (0x01 << 1);
+   *portb &= (0x01 << 4);
+   *porth &= (0x01 << 6);
+   *porth &= (0x01 << 5);
    *porth &= (0x01 << 4);
 
    // interrupt setup
-   attachInterrupt(digitalPinToInterrupt(buttonInterruptPin), handleInterrupt, RISING);
+   attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), handleInterrupt, RISING);
 
    myStepper.setSpeed(25);
 
@@ -213,15 +209,13 @@ void loop()
    if (interruptBtn)
    {
       printMessage((unsigned char *)"Interrupt button pressed- toggling relays\0");
-      static bool relaysOn = false;
-      relaysOn = !relaysOn;
       // digitalWrite(relay1Pin, relaysOn);
       *portb |= (0x01 << 0);
       // digitalWrite(relay2Pin, relaysOn);
       *portb |= (0x01 << 2);
-      // Green LED (led1Pin) indicates relay currentState
-      // digitalWrite(led1Pin, relaysOn);
-      *portb |= (0x01 << 4);
+      // // Green LED (led1Pin) indicates relay currentState
+      // // digitalWrite(led1Pin, relaysOn);
+      // *portb |= (0x01 << 4);
    }
 
    // Checks what currentState the system needs to be in
@@ -355,7 +349,9 @@ void displayTimeStamp()
 {
    DateTime now = rtc.now();
    String date;
-   date = now.toString("YYYY-MM-DD hh:mm:ss");
+   char format[] = "YYYY-MM-DD hh:mm:ss";
+   date = now.toString(format);
+   printMessage((unsigned char*) format);
    // TODO: LCD
 }
 
