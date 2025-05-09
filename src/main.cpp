@@ -140,6 +140,7 @@ void handleInterrupt();
 void displayTimeStamp();
 void displayTempAndHum(unsigned int, unsigned int);
 void stateCheck(unsigned int, unsigned int);
+void msTimerDelay(unsigned int);
 
 // Global variables to determine button hold
 volatile bool buttonPressed = false;
@@ -196,11 +197,11 @@ void setup()
    // digitalWrite(led3Pin, LOW);
    // digitalWrite(led4Pin, LOW);
    *portb &= ~(0x01 << 0);
-   *portb &= (0x01 << 1);
-   *portb &= (0x01 << 4);
-   *porth &= (0x01 << 6);
-   *porth &= (0x01 << 5);
-   *porth &= (0x01 << 4);
+   *portb &= ~(0x01 << 1);
+   *portb &= ~(0x01 << 4);
+   *porth &= ~(0x01 << 6);
+   *porth &= ~(0x01 << 5);
+   *porth &= ~(0x01 << 4);
 
    // interrupt setup
    attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), handleInterrupt, RISING);
@@ -209,6 +210,9 @@ void setup()
 
    printMessage((unsigned char *)"Setup complete. Ready for testing.\0");
 }
+
+unsigned long prevMillis = 0;
+const unsigned long interval = 60000; // 1 min
 
 void loop()
 {
@@ -254,13 +258,13 @@ void loop()
       displayTH = false;
       waterMonitor = false;
       // Turn on yellow LED
-      *portb &= (0x01 << 4);
+      *portb &= ~(0x01 << 4);
       *porth |= (0x01 << 6);
-      *porth &= (0x01 << 5);
-      *porth &= (0x01 << 4);
+      *porth &= ~(0x01 << 5);
+      *porth &= ~(0x01 << 4);
       // Turn off fans and pump
-      *portb &= (0x01 << 0);
-      *portb &= (0x01 << 1);
+      *portb &= ~(0x01 << 0);
+      *portb &= ~(0x01 << 1);
       break;
 
    case IDLE:
@@ -270,12 +274,12 @@ void loop()
       waterMonitor = true;
       // Turn on green LED
       *portb |= (0x01 << 4);
-      *porth &= (0x01 << 6);
-      *porth &= (0x01 << 5);
-      *porth &= (0x01 << 4);
+      *porth &= ~(0x01 << 6);
+      *porth &= ~(0x01 << 5);
+      *porth &= ~(0x01 << 4);
       // Turn off fans and pump
-      *portb &= (0x01 << 0);
-      *portb &= (0x01 << 1);
+      *portb &= ~(0x01 << 0);
+      *portb &= ~(0x01 << 1);
       break;
 
    case ERROR:
@@ -286,13 +290,13 @@ void loop()
       displayTH = true;
       waterMonitor = true;
       // Turn on red LED
-      *portb &= (0x01 << 4);
-      *porth &= (0x01 << 6);
+      *portb &= ~(0x01 << 4);
+      *porth &= ~(0x01 << 6);
       *porth |= (0x01 << 5);
-      *porth &= (0x01 << 4);
+      *porth &= ~(0x01 << 4);
       // Turn off fans and pump
-      *portb &= (0x01 << 0);
-      *portb &= (0x01 << 1);
+      *portb &= ~(0x01 << 0);
+      *portb &= ~(0x01 << 1);
       break;
 
    case RUNNING:
@@ -301,9 +305,9 @@ void loop()
       displayTH = true;
       waterMonitor = true;
       // Turn on blue LED
-      *portb &= (0x01 << 4);
-      *porth &= (0x01 << 6);
-      *porth &= (0x01 << 5);
+      *portb &= ~(0x01 << 4);
+      *porth &= ~(0x01 << 6);
+      *porth &= ~(0x01 << 5);
       *porth |= (0x01 << 4);
       // Turn on fans and pump
       *portb |= (0x01 << 0);
@@ -314,10 +318,11 @@ void loop()
       break;
    }
    // Display temperature and humidity on LCD
-   if (displayTH)
+   if (displayTH && millis() - prevMillis >= interval)
    {
       // TODO: fix the display function.
       displayTempAndHum(tempVal, (unsigned int)dht.readHumidity());
+      prevMillis = millis();
    }
 
    // Only allows the stepper motor to be controlled when the system is not in a DISABLED state
@@ -328,12 +333,14 @@ void loop()
       {
          // Move the stepper motor clockwise
          myStepper.step(-10);
+         displayTimeStamp();
       }
       // Check if the left stepper button is pressed
       else if (*pinb & (0x01 << 7))
       {
          // Move the stepper motor counterclockwise
          myStepper.step(10);
+         displayTimeStamp();
       }
    }
 }
@@ -378,8 +385,7 @@ unsigned int adc_read(unsigned char adc_num)
    *myADCSRB &= 0xDF;            // clear MUX5
    *myADMUX |= (adc_num & 0x1F); // channel 0 selection
    *myADCSRA |= 0x40;            // conversion
-   while ((*myADCSRA & 0x40) != 0)
-      ;
+   while ((*myADCSRA & 0x40) != 0);
    unsigned int val = *myADC_DATA;
    return val;
 }
@@ -419,7 +425,6 @@ void handleInterrupt()
       {
          buttonHold = false;
       }
-
       interruptBtn = true;
    }
 }
@@ -444,7 +449,7 @@ void displayTempAndHum(unsigned int temp, unsigned int hum)
    lcd.setCursor(0, 0);
    lcd.print("Temp: " + (String)temp + char(248) + "C");
    lcd.setCursor(0, 1);
-   lcd.print("Humidity: " + (String)hum);
+   lcd.print("Hum: " + (String)hum + "%");
 }
 
 void stateCheck(unsigned int waterLevel, unsigned int tempLevel)
