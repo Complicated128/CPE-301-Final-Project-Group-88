@@ -140,7 +140,7 @@ void handleInterrupt();
 void displayTimeStamp();
 void displayTempAndHum(unsigned int, unsigned int);
 void stateCheck(unsigned int, unsigned int);
-void msTimerDelay(unsigned int);
+void msTimerDelay(unsigned int); // TODO?
 
 // Global variables to determine button hold
 volatile bool buttonPressed = false;
@@ -320,7 +320,6 @@ void loop()
    // Display temperature and humidity on LCD
    if (displayTH && millis() - prevMillis >= interval)
    {
-      // TODO: fix the display function.
       displayTempAndHum(tempVal, (unsigned int)dht.readHumidity());
       prevMillis = millis();
    }
@@ -457,10 +456,12 @@ void stateCheck(unsigned int waterLevel, unsigned int tempLevel)
    if (tempLevel > tempThreshold) // temp higher than expected, run
    {
       currentState = RUNNING;
-   }
+      needClear = true;
+   } 
    else if (tempLevel <= tempThreshold) // temp lower than expected, idle
    {
       currentState = IDLE;
+      needClear = true;
    }
    if (waterLevel <= waterThreshold) // water lower than expected, error
    {
@@ -468,5 +469,6 @@ void stateCheck(unsigned int waterLevel, unsigned int tempLevel)
       // running -> error requires waterLevel < waterThreshold
       // idle -> error requires waterLevel <= waterThreshold
       currentState = ERROR;
+      needClear = true;
    }
 }
