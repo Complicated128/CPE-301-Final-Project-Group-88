@@ -130,6 +130,9 @@ unsigned int adc_read(unsigned char);
 void printMessage(unsigned char[]); // print strings
 void putChar(unsigned char);        // smaller version of printMessage
 void handleInterrupt();
+void displayTimeStamp();
+void displayTempAndHum(unsigned int, unsigned int);
+void stateCheck(unsigned int, unsigned int);
 
 // States the system will be in
 enum SystemState
@@ -147,9 +150,8 @@ bool fanOn = false;
 bool displayTH = false;
 bool stepperState = false;
 bool waterMonitor = false;
-int temp = -1;
-int hum = -1;
 bool needClear = true;
+unsigned int waterThreshold = 320; // value to change
 // Temperature Threshold = 10
 // Water Level Threshold = 320
 
@@ -214,8 +216,8 @@ void setup()
 
 void loop()
 {
-  unsigned int waterThreshold = 320;
   unsigned int sensorVal = adc_read(0);
+  unsigned int tempVal;
   if (interruptButtonPressed)
   {
     printMessage((unsigned char *)"Interrupt button pressed- toggling relays\0");
@@ -231,22 +233,7 @@ void loop()
   }
 
   // Checks what currentState the system needs to be in
-  if (temp <= 10)
-  {
-    currentState = IDLE;
-  }
-  else if (temp > 10)
-  {
-    currentState = RUNNING;
-  }
-  else if (currentState == ERROR)
-  {
-    currentState = IDLE;
-  }
-  else
-  {
-    currentState = DISABLED;
-  }
+  stateCheck(sensorVal, tempVal);
   // Change the currentState of the system
   switch (currentState)
   {
@@ -311,7 +298,7 @@ void loop()
   // Set stepper motor speed
   if (stepperState)
   {
-    
+
   }
   // display temperature and humidity
   if (displayTH)
@@ -402,7 +389,7 @@ void displayTimeStamp()
   putChar('\n');
 }
 
-void displayTempAndHum()
+void displayTempAndHum(unsigned int temp, unsigned int hum)
 {
   if (needClear)
   {
@@ -413,4 +400,24 @@ void displayTempAndHum()
   lcd.print("Temp: " + (String)temp + char(223) + "C");
   lcd.setCursor(0, 1);
   lcd.print("Humidity: " + (String)hum);
+}
+
+void stateCheck(unsigned int waterLevel, unsigned int temp)
+{
+  if (temp <= 10)
+  {
+    currentState = IDLE;
+  }
+  else if (temp > 10)
+  {
+    currentState = RUNNING;
+  }
+  else if (currentState == ERROR)
+  {
+    currentState = IDLE;
+  }
+  else
+  {
+    currentState = DISABLED;
+  }
 }
