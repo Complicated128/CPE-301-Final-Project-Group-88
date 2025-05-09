@@ -228,7 +228,6 @@ void loop()
          myStepper.step(10);
          delay(10); // Adjust delay for speed
       }
-
     }
    unsigned int waterVal = adc_read(0);
    unsigned int tempVal = dht.readTemperature();
@@ -326,7 +325,21 @@ void loop()
    default:
       break;
    }
-
+   // Only allows the stepper motor to be controlled when the system is not in a DISABLED state
+   if (currentState != DISABLED) {
+      // Check if the right stepper button is pressed
+      if (*pind & (0x01 << 6)) {
+         // Move the stepper motor clockwise
+         myStepper.step(-10);
+         delay(10); // Adjust delay for speed
+      } 
+      // Check if the left stepper button is pressed
+      else if (*pind & (0x01 << 7)) {
+         // Move the stepper motor counterclockwise
+         myStepper.step(10);
+         delay(10); // Adjust delay for speed
+      }
+   }
 }
 
 /* Serial port initialization
