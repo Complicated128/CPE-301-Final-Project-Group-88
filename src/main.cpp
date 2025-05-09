@@ -102,15 +102,9 @@ const int stepper1Pin = 43;          // IN1
 const int stepper2Pin = 45;          // IN2
 const int stepper3Pin = 47;          // IN3
 const int stepper4Pin = 49;          // IN4
+
 // Initialize stepper library
 Stepper myStepper(stepsPerRevolution, stepper1Pin, stepper3Pin, stepper2Pin, stepper4Pin);
-
-// Variables to track button states
-volatile bool interruptButtonPressed = false;
-bool lastLeftButtonState = HIGH;
-bool lastRightButtonState = HIGH;
-unsigned long lastDebounceTime = 0;
-unsigned long debounceDelay = 50; // Debounce time in milliseconds
 
 // Initialize the liquid crystal display
 const int RS = 29, EN = 27, D4 = 33, D5 = 35, D6 = 37, D7 = 39;
@@ -145,6 +139,7 @@ enum SystemState
 // Global variables
 SystemState currentState = DISABLED;
 SystemState previousState = DISABLED;
+bool interruptBtn = false;
 bool fanOn = false;
 bool displayTH = false;
 bool stepperState = false;
@@ -214,8 +209,8 @@ void setup()
 void loop()
 {
    unsigned int waterVal = adc_read(0);
-   unsigned int tempVal;
-   if (interruptButtonPressed)
+   unsigned int tempVal = dht.readTemperature();
+   if (interruptBtn)
    {
       printMessage((unsigned char *)"Interrupt button pressed- toggling relays\0");
       static bool relaysOn = false;
@@ -353,7 +348,7 @@ void putChar(unsigned char U0pdata)
 
 void handleInterrupt()
 {
-   interruptButtonPressed = true;
+   interruptBtn = true;
 }
 
 void displayTimeStamp()
