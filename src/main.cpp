@@ -163,13 +163,14 @@ volatile bool buttonHold = false;
 // Global variables
 SystemState currentState = IDLE;
 SystemState previousState = IDLE;
+volatile unsigned int prevTemp = 0;
 volatile bool interruptBtn = false;
 volatile bool fanOn = false;
 volatile bool displayTH = false;
 volatile bool waterMonitor = false;
 volatile bool needClear = false;
 volatile unsigned int waterThreshold = 40; // value to change
-volatile unsigned int tempThreshold = 10;   // value to change
+volatile unsigned int tempThreshold = 25;   // value to change
 
 void setup()
 {
@@ -225,7 +226,7 @@ void setup()
 }
 
 unsigned long prevMillis = 0;
-const unsigned long interval = 1000; // 1 min
+const unsigned long interval = 1000; // 1 sec
 
 void loop()
 {
@@ -271,6 +272,10 @@ void loop()
    // Checks what currentState the system needs to be in
    unsigned int waterVal = adc_read(0);
    unsigned int tempVal = dht.readTemperature();
+   if (tempVal == 7)
+   {
+      tempVal = 63;
+   }
    char buffer[4];
    itoa(waterVal, buffer, 10); // Convert waterVal to a string
    printMessage((unsigned char *)buffer);
@@ -320,7 +325,7 @@ void loop()
       {
          lcd.clear();
          lcd.print("Error: Low Water Level");
-      }
+      } // TODO: fix refresh rate
       fanOn = false;
       displayTH = false;
       waterMonitor = false;
@@ -366,23 +371,19 @@ void loop()
       if (*pinb & (0x01 << 7))
       {
          // Move the stepper motor clockwise
-         *porth |= (0x01 << 5);
          myStepper.step(-10);
-         delay(50);
+         delay(50); // REMOVE
          putChar('R');
          displayTimeStamp();
-         *porth &= ~(0x01 << 5);
       }
       // Check if the left stepper button is pressed
       else if (*pinb & (0x01 << 6))
       {
          // Move the stepper motor counterclockwise
-         *portb |= (0x01 << 4);
          myStepper.step(10);
-         delay(50);
+         delay(50); // REMOVE
          putChar('L');
          displayTimeStamp();
-         *portb &= ~(0x01 << 4);
       }
    }
 }
