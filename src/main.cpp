@@ -218,10 +218,12 @@ void loop() {
     static bool relaysOn = false;
     relaysOn = !relaysOn;
     //digitalWrite(relay1Pin, relaysOn);
+    *portb |= (0x01 << 0);
     //digitalWrite(relay2Pin, relaysOn);
-    
+    *portb |= (0x01 << 2);
     // Green LED (led1Pin) indicates relay currentState
     //digitalWrite(led1Pin, relaysOn);
+    *portb |= (0x01 << 4);
   }
 
   // Checks what currentState the system needs to be in
@@ -375,14 +377,6 @@ void printMessage(unsigned char msg[])
   }
 }
 
-void printMessage(String msg)
-{
-  for (int i = 0; msg[i] != '\0'; i++)
-  {
-    putChar(msg[i]);
-  }
-}
-
 void putChar(unsigned char U0pdata)
 {
   while (!(*myUCSR0A & TBE));
@@ -391,7 +385,6 @@ void putChar(unsigned char U0pdata)
 
 void handleInterrupt()
 {
-  
   interruptButtonPressed = true;
 }
 
@@ -399,7 +392,7 @@ void displayTimeStamp(){
   DateTime now = rtc.now(); 
   String date;
   date = now.toString("YYYY-MM-DD hh:mm:ss");
-  printMessage(date);
+  printMessage((unsigned char*)date.c_str());
   putChar('\n');
 }
 
