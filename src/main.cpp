@@ -215,6 +215,17 @@ void setup()
 
 void loop()
 {
+    // Only allows the stepper motor to be controlled when the system is not in a DISABLED state
+    if (currentState != DISABLED) {
+      if (digitalRead(buttonLeftPin) == HIGH) {
+         myStepper.step(-stepsPerRevolution);
+         delay(1000);
+      }
+      if (digitalRead(buttonRightPin) == HIGH) {
+         myStepper.step(stepsPerRevolution);
+         delay(1000);
+      }
+    }
    unsigned int waterVal = adc_read(0);
    unsigned int tempVal = dht.readTemperature();
    if (interruptBtn)
@@ -238,6 +249,11 @@ void loop()
    }
    // Checks what currentState the system needs to be in
    stateCheck(waterVal, tempVal);
+   if (currentState != previousState)
+   {
+      displayTimeStamp();
+      previousState = currentState;
+   }
    // Change the currentState of the system
    switch (currentState)
    {
@@ -310,7 +326,7 @@ void loop()
    default:
       break;
    }
-   previousState = currentState;
+
 }
 
 /* Serial port initialization
