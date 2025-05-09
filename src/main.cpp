@@ -11,8 +11,8 @@
 #define INTERRUPT_PIN 3
 #define FAN_RELAY_PIN 53
 #define PUMP_RELAY_PIN 52
-#define LEFT_STEPPER_PIN 12
-#define RIGHT_STEPPER_PIN 13
+#define RIGHT_STEPPER_PIN 12
+#define LEFT_STEPPER_PIN 13
 #define LED_PIN1 = 10
 #define LED_PIN2 = 9
 #define LED_PIN3 = 8
@@ -142,7 +142,6 @@ SystemState previousState = DISABLED;
 bool interruptBtn = false;
 bool fanOn = false;
 bool displayTH = false;
-bool stepperState = false;
 bool waterMonitor = false;
 bool needClear = false;
 unsigned int waterThreshold = 320; // value to change
@@ -161,9 +160,9 @@ void setup()
 
    // pinMode(buttonInterruptPin, INPUT); // PE5
    *ddre &= ~(0x01 << 5);
-   // pinMode(buttonLeftPin, INPUT); // PB6
+   // pinMode(buttonRightPin, INPUT); // PB6
    *ddrb &= ~(0x01 << 6);
-   // pinMode(buttonRightPin, INPUT); // PB7
+   // pinMode(buttonLeftPin, INPUT); // PB7
    *ddrb &= ~(0x01 << 7);
 
    // Set pin modes for relays and LEDs
@@ -204,14 +203,19 @@ void loop()
 {
     // Only allows the stepper motor to be controlled when the system is not in a DISABLED state
     if (currentState != DISABLED) {
-      if (digitalRead(buttonLeftPin) == HIGH) {
-         myStepper.step(-stepsPerRevolution);
-         delay(1000);
+      // Check if the right stepper button is pressed
+      if (*pind & (0x01 << 6)) {
+         // Move the stepper motor clockwise
+         myStepper.step(-10);
+         delay(10); // Adjust delay for speed
+      } 
+      // Check if the left stepper button is pressed
+      else if (*pind & (0x01 << 7)) {
+         // Move the stepper motor counterclockwise
+         myStepper.step(10);
+         delay(10); // Adjust delay for speed
       }
-      if (digitalRead(buttonRightPin) == HIGH) {
-         myStepper.step(stepsPerRevolution);
-         delay(1000);
-      }
+
     }
    unsigned int waterVal = adc_read(0);
    unsigned int tempVal = dht.readTemperature();
@@ -241,7 +245,6 @@ void loop()
       // Handle disabled currentState
       fanOn = false;
       displayTH = false;
-      stepperState = true;
       waterMonitor = false;
       // Turn on yellow LED
       *portb &= (0x01 << 4);
@@ -253,7 +256,6 @@ void loop()
       // Handle idle currentState
       fanOn = false;
       displayTH = true;
-      stepperState = true;
       waterMonitor = true;
       // Turn on green LED
       *portb |= (0x01 << 4);
@@ -267,7 +269,6 @@ void loop()
       lcd.print("Error: Low Water Level");
       fanOn = false;
       displayTH = true;
-      stepperState = false;
       waterMonitor = true;
       // Turn on red LED
       *portb &= (0x01 << 4);
@@ -279,7 +280,6 @@ void loop()
       // Handle running currentState
       fanOn = true;
       displayTH = true;
-      stepperState = true;
       waterMonitor = true;
       // Turn on blue LED
       *portb &= (0x01 << 4);
