@@ -147,8 +147,6 @@ bool waterMonitor = false;
 bool needClear = false;
 unsigned int waterThreshold = 320; // value to change
 unsigned int tempThreshold = 10;
-// Temperature Threshold = 10
-// Water Level Threshold = 320
 
 void setup()
 {
@@ -204,6 +202,17 @@ void setup()
 
 void loop()
 {
+    // Only allows the stepper motor to be controlled when the system is not in a DISABLED state
+    if (currentState != DISABLED) {
+      if (digitalRead(buttonLeftPin) == HIGH) {
+         myStepper.step(-stepsPerRevolution);
+         delay(1000);
+      }
+      if (digitalRead(buttonRightPin) == HIGH) {
+         myStepper.step(stepsPerRevolution);
+         delay(1000);
+      }
+    }
    unsigned int waterVal = adc_read(0);
    unsigned int tempVal = dht.readTemperature();
    if (interruptBtn)
@@ -220,6 +229,11 @@ void loop()
 
    // Checks what currentState the system needs to be in
    stateCheck(waterVal, tempVal);
+   if (currentState != previousState)
+   {
+      displayTimeStamp();
+      previousState = currentState;
+   }
    // Change the currentState of the system
    switch (currentState)
    {
@@ -246,7 +260,7 @@ void loop()
       *porth &= (0x01 << 6);
       *porth &= (0x01 << 5);
       *porth &= (0x01 << 4);
-      break;
+      break; 
    case ERROR:
       // Handle error currentState
       lcd.clear();
@@ -276,7 +290,7 @@ void loop()
    default:
       break;
    }
-   previousState = currentState;
+
 }
 
 /* Serial port initialization

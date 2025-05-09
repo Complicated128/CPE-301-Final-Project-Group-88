@@ -91,12 +91,12 @@ void loop() {
     // Small delay to avoid switch bounce even with caps
     delay(50);
   }
-  
+
   // Handle stepper motor buttons with simple direct reading
   // Read left and right button states
   int leftReading = digitalRead(buttonLeftPin);
   int rightReading = digitalRead(buttonRightPin);
-  
+
   // Debug button states
   static int lastLeftPrinted = -1;
   static int lastRightPrinted = -1;
@@ -110,7 +110,7 @@ void loop() {
     Serial.println(rightReading);
     lastRightPrinted = rightReading;
   }
-  
+
   // Simple direct control for debugging
   if (leftReading == HIGH) {
     Serial.println("Moving stepper left");
@@ -118,14 +118,14 @@ void loop() {
     myStepper.step(10);  // Small movement for testing
     digitalWrite(led2Pin, LOW);   // Yellow LED off
   }
-  
+
   if (rightReading == HIGH) {
     Serial.println("Moving stepper right");
     digitalWrite(led3Pin, HIGH);  // Red LED on
     myStepper.step(-10);  // Small movement for testing
     digitalWrite(led3Pin, LOW);   // Red LED off
   }
-  
+
   // Small delay
   delay(50);
 }
