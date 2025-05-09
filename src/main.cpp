@@ -148,30 +148,17 @@ volatile unsigned long pressDuration = 0;
 volatile bool buttonHold = false;
 
 // Global variables
-<<<<<<< HEAD
-SystemState currentState = DISABLED;
-SystemState previousState = DISABLED;
-bool interruptBtn = false;
-bool fanOn = false;
-bool displayTH = false;
-bool waterMonitor = false;
-bool needClear = false;
-unsigned int waterThreshold = 320; // value to change
-unsigned int tempThreshold = 10;
-=======
 SystemState currentState = IDLE;
 SystemState previousState = IDLE;
 volatile bool interruptBtn = false;
 volatile bool fanOn = false;
 volatile bool displayTH = false;
-volatile bool stepperState = false;
 volatile bool waterMonitor = false;
 volatile bool needClear = false;
 volatile unsigned int waterThreshold = 320; // value to change
 volatile unsigned int tempThreshold = 10;   // value to change
 volatile unsigned long pressStartTime = 0;
 volatile unsigned long pressDuration = 0;
->>>>>>> de5d76ec82bda7aa5b9025058226d75278ab1b64
 
 void setup()
 {
