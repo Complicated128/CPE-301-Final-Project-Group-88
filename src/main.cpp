@@ -145,7 +145,7 @@ SystemState currentState = IDLE;
 SystemState previousState = IDLE;
 bool fanOn = false;
 bool displayTH = false;
-bool steeperOn = false;
+bool stepperState = false;
 bool waterMonitor = false;
 int temp = -1;
 int hum = -1;
@@ -206,22 +206,10 @@ void setup() {
   // interrupt setup
   attachInterrupt(digitalPinToInterrupt(buttonInterruptPin), handleInterrupt, RISING);
 
+  myStepper.setSpeed(25);
+
   printMessage((unsigned char*)"Setup complete. Ready for testing.\0");
 }
-
-// Loop variables
-SystemState currentState = IDLE;
-SystemState previousState = IDLE;
-bool fanOn = false;
-bool displayTH = false;
-bool steeperOn = false;
-bool waterMonitor = false;
-int temp = -1;
-int hum = -1;
-bool needClear = true;
-bool interruptButtonPressed = false;
-// Temperature Threshold = 10
-// Water Level Threshold = 320
 
 void loop() {
   unsigned int waterThreshold = 320;
@@ -239,20 +227,15 @@ void loop() {
     //digitalWrite(led1Pin, relaysOn);
     *portb |= (0x01 << 4);
   }
-  if (previousState != currentState)
-  {
-    displayTimeStamp();
-  }
 
   // Checks what currentState the system needs to be in
-  if (temp > 10)
-  {
+  if (temp <= 10) {
+    currentState = IDLE;
+  } else if (temp > 10) {
     currentState = RUNNING;
   } else if (currentState == ERROR) {
     currentState = IDLE;
-  }
-  else
-  {
+  } else {
     currentState = DISABLED;
   }
   // Change the currentState of the system
@@ -261,7 +244,7 @@ void loop() {
       // Handle disabled currentState
       fanOn = false;
       displayTH = false;
-      steeperOn = true;
+      stepperState = true;
       waterMonitor = false;
       // Turn on yellow LED
       *portb &= (0x01 << 4);
@@ -273,7 +256,7 @@ void loop() {
       // Handle idle currentState
       fanOn = false;
       displayTH = true;
-      steeperOn = true;
+      stepperState = true;
       waterMonitor = true;
       // Turn on green LED
       *portb |= (0x01 << 4);
@@ -287,7 +270,7 @@ void loop() {
       lcd.print("Error: Low Water Level");
       fanOn = false;
       displayTH = true;
-      steeperOn = false;
+      stepperState = false;
       waterMonitor = true;
       // Turn on red LED
       *portb &= (0x01 << 4);
@@ -299,7 +282,7 @@ void loop() {
       // Handle running currentState
       fanOn = true;
       displayTH = true;
-      steeperOn = true;
+      stepperState = true;
       waterMonitor = true;
       // Turn on blue LED
       *portb &= (0x01 << 4);
@@ -316,7 +299,7 @@ void loop() {
 
     }
     // Set stepper motor speed
-    if (steeperOn) {
+    if (stepperState) {
 
     }
     //display temperature and humidity
@@ -329,7 +312,7 @@ void loop() {
 
 void setup_timer_regs()
 {
-  
+  //TODO: dont know what to put
 }
 
 /* Serial port initialization
@@ -386,6 +369,8 @@ ISR(TIMER1_OVF_vect)
   // {
   //   *portb ^= 0x40;
   // }
+
+  //TODO: dunno what to put
 }
 
 void printMessage(unsigned char msg[])
