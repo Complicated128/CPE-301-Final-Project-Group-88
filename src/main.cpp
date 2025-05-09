@@ -157,8 +157,6 @@ volatile bool waterMonitor = false;
 volatile bool needClear = false;
 volatile unsigned int waterThreshold = 320; // value to change
 volatile unsigned int tempThreshold = 10;   // value to change
-volatile unsigned long pressStartTime = 0;
-volatile unsigned long pressDuration = 0;
 
 void setup()
 {
@@ -214,9 +212,6 @@ void setup()
 
 void loop()
 {
-   // Only allows the stepper motor to be controlled when the system is not in a DISABLED state
-   unsigned int waterVal = adc_read(0);
-   unsigned int tempVal = dht.readTemperature();
    if (interruptBtn)
    {
       if (currentState == DISABLED)
@@ -229,7 +224,7 @@ void loop()
          printMessage((unsigned char *)"Interrupt button pressed (disabling)\0");
          currentState = DISABLED;
       }
-      if (buttonHold && currentState == DISABLED)
+      if (buttonHold && currentState == ERROR)
       {
          printMessage((unsigned char *)"Interrupt button held (resetting)\0");
          setup(); // not sure if its required
@@ -242,12 +237,9 @@ void loop()
       return;
    }
    // Checks what currentState the system needs to be in
+   unsigned int waterVal = adc_read(0);
+   unsigned int tempVal = dht.readTemperature();
    stateCheck(waterVal, tempVal);
-   if (currentState != previousState)
-   {
-      displayTimeStamp();
-      previousState = currentState;
-   }
    if (currentState != previousState)
    {
       displayTimeStamp();
@@ -325,32 +317,23 @@ void loop()
    if (displayTH)
    {
       // TODO: fix the display function.
-   }
-   // Check if the water level is below the threshold
-   if (waterMonitor)
-   {  
-      // Read the water level from the ADC
-      int waterVal = adc_read(0); //TODO: change to correct channel
-      if (waterVal <= waterThreshold)
-      {
-         // Water level is low, take action
-         currentState = ERROR;
-      }
+      displayTempAndHum(tempVal, (unsigned int)dht.readHumidity());
    }
 
    // Only allows the stepper motor to be controlled when the system is not in a DISABLED state
-   if (currentState != DISABLED) {
+   if (currentState != DISABLED)
+   {
       // Check if the right stepper button is pressed
-      if (*pind & (0x01 << 6)) {
+      if (*pinb & (0x01 << 6))
+      {
          // Move the stepper motor clockwise
          myStepper.step(-10);
-         delay(10); // Adjust delay for speed
-      } 
+      }
       // Check if the left stepper button is pressed
-      else if (*pind & (0x01 << 7)) {
+      else if (*pinb & (0x01 << 7))
+      {
          // Move the stepper motor counterclockwise
          myStepper.step(10);
-         delay(10); // Adjust delay for speed
       }
    }
 }
@@ -416,6 +399,7 @@ void putChar(unsigned char U0pdata)
    *myUDR0 = U0pdata;
 }
 
+//ISR
 void handleInterrupt()
 {
    if (!buttonPressed) // will be true, button pressed
@@ -458,22 +442,22 @@ void displayTempAndHum(unsigned int temp, unsigned int hum)
       needClear = false;
    }
    lcd.setCursor(0, 0);
-   lcd.print("Temp: " + (String)temp + char(223) + "C");
+   lcd.print("Temp: " + (String)temp + char(248) + "C");
    lcd.setCursor(0, 1);
    lcd.print("Humidity: " + (String)hum);
 }
 
 void stateCheck(unsigned int waterLevel, unsigned int tempLevel)
 {
-   if (tempLevel > tempThreshold)
+   if (tempLevel > tempThreshold) // temp higher than expected, run
    {
       currentState = RUNNING;
    }
-   else if (tempLevel <= tempThreshold)
+   else if (tempLevel <= tempThreshold) // temp lower than expected, idle
    {
       currentState = IDLE;
    }
-   if (waterLevel <= waterThreshold)
+   if (waterLevel <= waterThreshold) // water lower than expected, error
    {
       // both cases of running -> error and idle -> error have similar cases
       // running -> error requires waterLevel < waterThreshold
