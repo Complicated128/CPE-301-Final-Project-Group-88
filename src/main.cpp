@@ -310,6 +310,23 @@ void loop()
    default:
       break;
    }
+   // Display temperature and humidity on LCD
+   if (displayTH)
+   {
+      // TODO: fix the display function.
+   }
+   // Check if the water level is below the threshold
+   if (waterMonitor)
+   {  
+      // Read the water level from the ADC
+      int waterVal = adc_read(0); //TODO: change to correct channel
+      if (waterVal <= waterThreshold)
+      {
+         // Water level is low, take action
+         currentState = ERROR;
+      }
+   }
+
    // Only allows the stepper motor to be controlled when the system is not in a DISABLED state
    if (currentState != DISABLED) {
       // Check if the right stepper button is pressed
