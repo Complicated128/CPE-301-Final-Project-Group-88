@@ -96,15 +96,25 @@ volatile unsigned char *myADCSRB = (unsigned char *)0x7B;
 volatile unsigned char *myADCSRA = (unsigned char *)0x7A;
 volatile unsigned int *myADC_DATA = (unsigned int *)0x78;
 
+// // Stepper motor pins and configuration
+// #define STEPS_PER_REV 2048
+// #define STEPPER_PIN1 43
+// #define STEPPER_PIN2 45
+// #define STEPPER_PIN3 47
+// #define STEPPER_PIN4 49
+
+// // Initialize stepper library
+// Stepper myStepper(STEPS_PER_REV, STEPPER_PIN1, STEPPER_PIN3, STEPPER_PIN2, STEPPER_PIN4);
+
 // Stepper motor pins and configuration
-#define STEPS_PER_REV 2048
-#define STEPPER_PIN1 43
-#define STEPPER_PIN2 45
-#define STEPPER_PIN3 47
-#define STEPPER_PIN4 49
+const int stepsPerRevolution = 2048;  // 28BYJ-48 stepper has 2048 steps per revolution
+const int stepper1Pin = 43;           // IN1
+const int stepper2Pin = 45;           // IN2
+const int stepper3Pin = 47;           // IN3
+const int stepper4Pin = 49;           // IN4
 
 // Initialize stepper library
-Stepper myStepper(STEPS_PER_REV, STEPPER_PIN1, STEPPER_PIN3, STEPPER_PIN2, STEPPER_PIN4);
+Stepper myStepper(stepsPerRevolution, stepper1Pin, stepper3Pin, stepper2Pin, stepper4Pin);
 
 // Initialize the liquid crystal display
 #define LC_RS 29
@@ -124,13 +134,15 @@ DHT dht(25, DHT11);
 // States the system will be in
 enum SystemState
 {
-   DISABLED,
-   IDLE,
-   ERROR,
-   RUNNING,
+   DISABLED = 'D',
+   IDLE = 'I',
+   ERROR = 'E',
+   RUNNING = 'R',
 };
 
 // Function prototypes
+void setup_timer_regs(); // TODO
+ISR(TIMER1_OVF_vect);
 void U0Init(int); // serial port initialization
 void adc_init();
 unsigned int adc_read(unsigned char);
@@ -156,7 +168,7 @@ volatile bool fanOn = false;
 volatile bool displayTH = false;
 volatile bool waterMonitor = false;
 volatile bool needClear = false;
-volatile unsigned int waterThreshold = 320; // value to change
+volatile unsigned int waterThreshold = 40; // value to change
 volatile unsigned int tempThreshold = 10;   // value to change
 
 void setup()
@@ -167,6 +179,7 @@ void setup()
    rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // Setuup temp and humidity sensor
    dht.begin();                                    // start temp and humidity
    lcd.begin(16, 2);                               // Setup the LCD
+   setup_timer_regs();
 
    printMessage((unsigned char *)"Component Test Program\0");
 
@@ -212,7 +225,7 @@ void setup()
 }
 
 unsigned long prevMillis = 0;
-const unsigned long interval = 60000; // 1 min
+const unsigned long interval = 1000; // 1 min
 
 void loop()
 {
@@ -221,31 +234,50 @@ void loop()
       if (currentState == DISABLED)
       {
          printMessage((unsigned char *)"Interrupt button pressed (starting)\0");
+         putChar(currentState);
+         displayTimeStamp();
          currentState = IDLE;
       }
       else
       {
          printMessage((unsigned char *)"Interrupt button pressed (disabling)\0");
+         putChar(currentState);
+         displayTimeStamp();
          currentState = DISABLED;
       }
       if (buttonHold && currentState == ERROR)
       {
          printMessage((unsigned char *)"Interrupt button held (resetting)\0");
+         putChar(currentState);
+         displayTimeStamp();
          setup(); // not sure if its required
          currentState = IDLE;
       }
       interruptBtn = false;
    }
+   putChar(currentState);
    if (currentState == DISABLED)
    {
+      *portb &= ~(0x01 << 4);
+      *porth |= (0x01 << 6);
+      *porth &= ~(0x01 << 5);
+      *porth &= ~(0x01 << 4);
+      // Turn off fans and pump
+      *portb &= ~(0x01 << 0);
+      *portb &= ~(0x01 << 1);
+      lcd.clear();
       return;
    }
    // Checks what currentState the system needs to be in
    unsigned int waterVal = adc_read(0);
    unsigned int tempVal = dht.readTemperature();
+   char buffer[4];
+   itoa(waterVal, buffer, 10); // Convert waterVal to a string
+   printMessage((unsigned char *)buffer);
    stateCheck(waterVal, tempVal);
    if (currentState != previousState)
    {
+      putChar(currentState);
       displayTimeStamp();
       previousState = currentState;
    }
@@ -284,11 +316,14 @@ void loop()
 
    case ERROR:
       // Handle error currentState
-      lcd.clear();
-      lcd.print("Error: Low Water Level");
+      if (millis() - prevMillis >= interval)
+      {
+         lcd.clear();
+         lcd.print("Error: Low Water Level");
+      }
       fanOn = false;
-      displayTH = true;
-      waterMonitor = true;
+      displayTH = false;
+      waterMonitor = false;
       // Turn on red LED
       *portb &= ~(0x01 << 4);
       *porth &= ~(0x01 << 6);
@@ -326,22 +361,53 @@ void loop()
 
    // Only allows the stepper motor to be controlled when the system is not in a DISABLED state
    if (currentState != DISABLED)
-   {
+   { // TODO: Broken
       // Check if the right stepper button is pressed
-      if (*pinb & (0x01 << 6))
+      if (*pinb & (0x01 << 7))
       {
          // Move the stepper motor clockwise
+         *porth |= (0x01 << 5);
          myStepper.step(-10);
+         delay(50);
+         putChar('R');
          displayTimeStamp();
+         *porth &= ~(0x01 << 5);
       }
       // Check if the left stepper button is pressed
-      else if (*pinb & (0x01 << 7))
+      else if (*pinb & (0x01 << 6))
       {
          // Move the stepper motor counterclockwise
+         *portb |= (0x01 << 4);
          myStepper.step(10);
+         delay(50);
+         putChar('L');
          displayTimeStamp();
+         *portb &= ~(0x01 << 4);
       }
    }
+}
+
+void setup_timer_regs() // TODO: setup hold event for ISR
+{
+   *myTCCR1A = *myTCCR1B = *myTCCR1C = 0x00;
+   *myTIMSK1 |= 0x01;
+   *myTIFR1 |= 0x01;
+}
+
+unsigned int currentTicks = 65535;
+
+ISR(TIMER1_OVF_vect) {
+  // Stop the Timer
+  *myTCCR1B &= 0xF8;
+  // Load the Count
+  *myTCNT1 = (unsigned int)(65535 - (unsigned long)(currentTicks));
+  // Start the Timer PRESCALAR 8
+  *myTCCR1B |= 0x02;
+  // if it's not the STOP amount
+  if (currentTicks != 65535) {
+    // XOR to toggle PB6
+    *portb ^= 0x40;
+  }
 }
 
 /* Serial port initialization
@@ -407,6 +473,19 @@ void putChar(unsigned char U0pdata)
 //ISR
 void handleInterrupt()
 {
+   // Stop the Timer
+   *myTCCR1B &= 0xF8;
+   // Load the Count
+   *myTCNT1 = (unsigned int)(65535 - (unsigned long)(pressDuration * 2)); // Example scaling
+   // Start the Timer PRESCALAR 8
+   *myTCCR1B |= 0x02;
+   // Check if the timer count is not the maximum value
+   if (pressDuration * 2 != 65535)
+   {
+      // XOR to toggle PB6
+      *portb ^= 0x40;
+   }
+
    if (!buttonPressed) // will be true, button pressed
    {
       buttonPressed = true;
@@ -432,7 +511,7 @@ void displayTimeStamp()
 {
    DateTime now = rtc.now();
    String date;
-   char format[] = "YYYY-MM-DD hh:mm:ss";
+   char format[] = "YYYY-MM-DD hh:mm:ss\n";
    date = now.toString(format);
    printMessage((unsigned char *)format);
    // TODO: LCD
@@ -446,19 +525,19 @@ void displayTempAndHum(unsigned int temp, unsigned int hum)
       needClear = false;
    }
    lcd.setCursor(0, 0);
-   lcd.print("Temp: " + (String)temp + char(248) + "C");
+   lcd.print("Temp: " + (String)temp + char(223) + "C");
    lcd.setCursor(0, 1);
    lcd.print("Hum: " + (String)hum + "%");
 }
 
 void stateCheck(unsigned int waterLevel, unsigned int tempLevel)
 {
-   if (tempLevel > tempThreshold) // temp higher than expected, run
+   if (tempLevel > tempThreshold && currentState != ERROR) // temp higher than expected, run
    {
       currentState = RUNNING;
       needClear = true;
    } 
-   else if (tempLevel <= tempThreshold) // temp lower than expected, idle
+   else if (tempLevel <= tempThreshold && currentState != ERROR) // temp lower than expected, idle
    {
       currentState = IDLE;
       needClear = true;

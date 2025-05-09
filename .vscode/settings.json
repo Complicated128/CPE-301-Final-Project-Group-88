@@ -1,9 +1,9 @@
 {
-  "C_Cpp_Runner.cCompilerPath": "C:/Users/Aaron/.platformio/packages/toolchain-atmelavr/bin/avr-gcc.exe",
-  "C_Cpp_Runner.cppCompilerPath": "C:/Users/Aaron/.platformio/packages/toolchain-atmelavr/bin/avr-g++.exe",
-  "C_Cpp_Runner.debuggerPath": "C:/Users/Aaron/.platformio/packages/toolchain-atmelavr/bin/avr-gdb.exe",
-  "C_Cpp_Runner.cStandard": "gnu11",
-  "C_Cpp_Runner.cppStandard": "gnu++17",
+  "C_Cpp_Runner.cCompilerPath": "gcc",
+  "C_Cpp_Runner.cppCompilerPath": "g++",
+  "C_Cpp_Runner.debuggerPath": "gdb",
+  "C_Cpp_Runner.cStandard": "",
+  "C_Cpp_Runner.cppStandard": "",
   "C_Cpp_Runner.msvcBatchPath": "C:/Program Files/Microsoft Visual Studio/VR_NR/Community/VC/Auxiliary/Build/vcvarsall.bat",
   "C_Cpp_Runner.useMsvc": false,
   "C_Cpp_Runner.warnings": [
@@ -37,27 +37,7 @@
   "C_Cpp_Runner.warningsAsError": false,
   "C_Cpp_Runner.compilerArgs": [],
   "C_Cpp_Runner.linkerArgs": [],
-  "C_Cpp_Runner.includePaths": [
-    "c:/Users/Aaron/Desktop/what-the-funk/arduino/CPE-301-Final-Project-Group-88/src",
-    "c:/Users/Aaron/Desktop/what-the-funk/arduino/CPE-301-Final-Project-Group-88/.pio/libdeps/ATmega2560/Stepper/src",
-    "c:/Users/Aaron/Desktop/what-the-funk/arduino/CPE-301-Final-Project-Group-88/.pio/libdeps/ATmega2560/RTClib/src",
-    "c:/Users/Aaron/Desktop/what-the-funk/arduino/CPE-301-Final-Project-Group-88/.pio/libdeps/ATmega2560/Adafruit BusIO",
-    "C:/Users/Aaron/.platformio/packages/framework-arduino-avr-megacore/libraries/Wire/src",
-    "c:/Users/Aaron/Desktop/what-the-funk/arduino/CPE-301-Final-Project-Group-88/.pio/libdeps/ATmega2560/LiquidCrystal/src",
-    "c:/Users/Aaron/Desktop/what-the-funk/arduino/CPE-301-Final-Project-Group-88/.pio/libdeps/ATmega2560/DHT sensor library",
-    "c:/Users/Aaron/Desktop/what-the-funk/arduino/CPE-301-Final-Project-Group-88/.pio/libdeps/ATmega2560/Adafruit Unified Sensor",
-    "C:/Users/Aaron/.platformio/packages/framework-arduino-avr-megacore/cores/MegaCore",
-    "C:/Users/Aaron/.platformio/packages/framework-arduino-avr-megacore/variants/100-pin-arduino-mega",
-    "C:/Users/Aaron/.platformio/packages/framework-arduino-avr-megacore/libraries/AVR_examples/src",
-    "C:/Users/Aaron/.platformio/packages/framework-arduino-avr-megacore/libraries/EEPROM/src",
-    "C:/Users/Aaron/.platformio/packages/framework-arduino-avr-megacore/libraries/Flash/src",
-    "C:/Users/Aaron/.platformio/packages/framework-arduino-avr-megacore/libraries/SD/src",
-    "C:/Users/Aaron/.platformio/packages/framework-arduino-avr-megacore/libraries/SPI/src",
-    "C:/Users/Aaron/.platformio/packages/framework-arduino-avr-megacore/libraries/Servo/src",
-    "C:/Users/Aaron/.platformio/packages/framework-arduino-avr-megacore/libraries/SoftwareSerial/src",
-    "C:/Users/Aaron/.platformio/packages/framework-arduino-avr-megacore/libraries/Timer/src",
-    ""
-  ],
+  "C_Cpp_Runner.includePaths": [],
   "C_Cpp_Runner.includeSearch": [
     "*",
     "**/*"

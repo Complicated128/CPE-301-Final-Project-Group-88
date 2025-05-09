@@ -96,7 +96,7 @@ void loop() {
   // Read left and right button states
   int leftReading = digitalRead(buttonLeftPin);
   int rightReading = digitalRead(buttonRightPin);
-
+  
   // Debug button states
   static int lastLeftPrinted = -1;
   static int lastRightPrinted = -1;
