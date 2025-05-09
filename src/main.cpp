@@ -209,6 +209,20 @@ void setup() {
   printMessage((unsigned char*)"Setup complete. Ready for testing.\0");
 }
 
+// Loop variables
+SystemState currentState = IDLE;
+SystemState previousState = IDLE;
+bool fanOn = false;
+bool displayTH = false;
+bool steeperOn = false;
+bool waterMonitor = false;
+int temp = -1;
+int hum = -1;
+bool needClear = true;
+bool interruptButtonPressed = false;
+// Temperature Threshold = 10
+// Water Level Threshold = 320
+
 void loop() {
   unsigned int waterThreshold = 320;
   unsigned int sensorVal = adc_read(0);
@@ -225,15 +239,20 @@ void loop() {
     //digitalWrite(led1Pin, relaysOn);
     *portb |= (0x01 << 4);
   }
+  if (previousState != currentState)
+  {
+    displayTimeStamp();
+  }
 
   // Checks what currentState the system needs to be in
-  if (temp <= 10) {
-    currentState = IDLE;
-  } else if (temp > 10) {
+  if (temp > 10)
+  {
     currentState = RUNNING;
   } else if (currentState == ERROR) {
     currentState = IDLE;
-  } else {
+  }
+  else
+  {
     currentState = DISABLED;
   }
   // Change the currentState of the system

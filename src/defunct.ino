@@ -23,7 +23,7 @@ const int stepper4Pin = 49;           // IN4
 // Initialize stepper library
 Stepper myStepper(stepsPerRevolution, stepper1Pin, stepper3Pin, stepper2Pin, stepper4Pin);
 
-// Variables to track button states
+// Variables to track butw states
 volatile bool interruptButtonPressed = false;
 bool lastLeftButtonState = HIGH;
 bool lastRightButtonState = HIGH;
