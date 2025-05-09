@@ -116,13 +116,19 @@ unsigned long debounceDelay = 50;  // Debounce time in milliseconds
 const int RS = 29, EN = 27, D4 = 33, D5 = 35, D6 = 37, D7 = 39;
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
+//Initialize RTC
+RTC_DS1307 rtc;
+
+//Initialize DHT
+DHT dht(25, DHT11);
+
 // Function prototypes
 void setup_timer_regs();
 void U0Init(int); // serial port initialization
 void adc_init();
 unsigned int adc_read(unsigned char);
 ISR(TIMER1_OVF_vect);
-void printMessage(unsigned char[]);
+void printMessage(unsigned char[]); // print strings
 void putChar(unsigned char); // smaller version of printMessage
 void handleInterrupt();
 
@@ -144,7 +150,6 @@ bool waterMonitor = false;
 int temp = -1;
 int hum = -1;
 bool needClear = true;
-bool interruptButtonPressed = false;
 // Temperature Threshold = 10
 // Water Level Threshold = 320
 
@@ -224,7 +229,7 @@ void loop() {
     currentState = IDLE;
   } else if (temp > 10) {
     currentState = RUNNING;
-  } else if (currentState == ERROR)
+  } else if (currentState == ERROR) {
     currentState = IDLE;
   } else {
     currentState = DISABLED;
@@ -235,7 +240,7 @@ void loop() {
       // Handle disabled currentState
       fanOn = false;
       displayTH = false;
-      steeperOn = True;
+      steeperOn = true;
       waterMonitor = false;
       // Turn on yellow LED
       *portb &= (0x01 << 4);
@@ -247,7 +252,7 @@ void loop() {
       // Handle idle currentState
       fanOn = false;
       displayTH = true;
-      steeperOn = True;
+      steeperOn = true;
       waterMonitor = true;
       // Turn on green LED
       *portb |= (0x01 << 4);
@@ -370,6 +375,14 @@ void printMessage(unsigned char msg[])
   }
 }
 
+void printMessage(String msg)
+{
+  for (int i = 0; msg[i] != '\0'; i++)
+  {
+    putChar(msg[i]);
+  }
+}
+
 void putChar(unsigned char U0pdata)
 {
   while (!(*myUCSR0A & TBE));
@@ -386,10 +399,8 @@ void displayTimeStamp(){
   DateTime now = rtc.now(); 
   String date;
   date = now.toString("YYYY-MM-DD hh:mm:ss");
-  for(int i = 0; i < date.length(); ++i){
-    U0putChar(date[i]);
-  }
-  U0putChar('\n');
+  printMessage(date);
+  putChar('\n');
 }
 
 void displayTempAndHum(){
