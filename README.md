@@ -143,3 +143,13 @@ All credit of the physical circuitry goes to William Toohey, along with some of 
 ## Extra Stuff
 
 Check out the "extras" folder as it has many more photos of the circuit, and the physical build. It also includes the final report and the wiring diagram. 
+
+### Deviations from the given diagrams
+![alt text](extras/imageOrig.png)
+
+versus
+
+![alt text](extras/imageReset.png)
+
+To us, this makes more sense because why would reset only work for ERROR?
+We made it so that everytime we hold the button (holding triggers reset), it will do the setup again and pretend it started at the very beginning.
