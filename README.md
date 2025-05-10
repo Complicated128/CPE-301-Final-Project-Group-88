@@ -133,6 +133,7 @@ It is used to pump water to the cooler pad. It can be found underneat the Blower
 ## System Demonstration
 
 [![video of a swamp cooler project demonstration](https://img.youtube.com/vi/Vm3F59e2kbA/0.jpg)](https://www.youtube.com/watch?v=Vm3F59e2kbA)
+Clicking upon this will redirect you to this link: https://www.youtube.com/watch?v=Vm3F59e2kbA
 
 ## Team Members
 The team consists of the burnt out students: Aaron Ba, William Toohey, Sean Lai
