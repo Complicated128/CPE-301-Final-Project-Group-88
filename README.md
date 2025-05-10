@@ -142,7 +142,9 @@ All credit of the physical circuitry goes to William Toohey, along with some of 
 
 ## Extra Stuff
 
-Check out the "extras" folder as it has many more photos of the circuit, and the physical build. It also includes the final report and the wiring diagram. 
+Check out the "extras" folder as it has many more photos of the circuit, and the physical build.
+
+It also includes the final report(s) and the wiring diagram. 
 
 ### Deviations from the given diagrams
 ![alt text](extras/imageOrig.png)
