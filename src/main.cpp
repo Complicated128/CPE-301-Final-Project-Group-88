@@ -141,7 +141,7 @@ enum SystemState
 };
 
 // Function prototypes
-void setup_timer_regs(); // TODO
+void msTimerDelay(unsigned long); // TODO
 ISR(TIMER1_OVF_vect);
 void U0Init(int); // serial port initialization
 void adc_init();
@@ -152,7 +152,6 @@ void handleInterrupt();
 void displayTimeStamp();
 void displayTempAndHum(unsigned int, unsigned int);
 void stateCheck(unsigned int, unsigned int);
-void msTimerDelay(unsigned int); // TODO?
 
 // Global variables to determine button hold
 volatile bool buttonPressed = false;
@@ -179,7 +178,6 @@ void setup()
    rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // Setuup temp and humidity sensor
    dht.begin();                                    // start temp and humidity
    lcd.begin(16, 2);                               // Setup the LCD
-   setup_timer_regs();
 
    printMessage((unsigned char *)"Component Test Program\0");
 
@@ -229,10 +227,10 @@ const unsigned long interval = 1000; // 1 sec
 
 void loop()
 {
-   if (interruptBtn)
+   if (interruptBtn) // interrupt triggered
    {
       pressDuration = millis() - startTime;
-      if (pressDuration >= 3000) // long press
+      if (pressDuration > 3000) // long press
       {
          printMessage((unsigned char *)"Interrupt button held (resetting)\0");
          putChar(currentState);
@@ -282,10 +280,12 @@ void loop()
    char buffer[4];
    itoa(waterVal, buffer, 10); // Convert waterVal to a string
    printMessage((unsigned char *)buffer);
+   putChar(' ');
    stateCheck(waterVal, tempVal);
    if (currentState != previousState)
    {
       putChar(currentState);
+      putChar(' ');
       displayTimeStamp();
       previousState = currentState;
    }
@@ -324,11 +324,12 @@ void loop()
 
    case ERROR:
       // Handle error currentState
-      if (millis() - prevMillis >= interval)
+      if (needClear)
       {
          lcd.clear();
          lcd.print("Error: Low Water Level");
-      } // TODO: fix refresh rate
+         needClear = false;
+      }
       fanOn = false;
       displayTH = false;
       waterMonitor = false;
@@ -375,7 +376,7 @@ void loop()
       {
          // Move the stepper motor clockwise
          myStepper.step(-10);
-         delay(50); // REMOVE
+         msTimerDelay(50);
          putChar('R');
          displayTimeStamp();
       }
@@ -384,36 +385,23 @@ void loop()
       {
          // Move the stepper motor counterclockwise
          myStepper.step(10);
-         delay(50); // REMOVE
+         msTimerDelay(50);
          putChar('L');
          displayTimeStamp();
       }
    }
 }
 
-void setup_timer_regs() // TODO: setup hold event for ISR
+void msTimerDelay(unsigned long ms)
 {
-   *myTCCR1A = *myTCCR1B = *myTCCR1C = 0x00;
-   *myTIMSK1 |= 0x01;
-   *myTIFR1 |= 0x01;
-}
-
-unsigned int currentTicks = 65535;
-
-ISR(TIMER1_OVF_vect)
-{
-   // Stop the Timer
-   *myTCCR1B &= 0xF8;
-   // Load the Count
-   *myTCNT1 = (unsigned int)(65535 - (unsigned long)(currentTicks));
-   // Start the Timer PRESCALAR 8
-   *myTCCR1B |= 0x02;
-   // if it's not the STOP amount
-   if (currentTicks != 65535)
-   {
-      // XOR to toggle PB6
-      *portb ^= 0x40;
-   }
+   *myTCCR1A = *myTCCR1B = 0x00;
+   unsigned long ticks = (unsigned long)(ms*250);
+   unsigned int start = 65536 - ticks;
+   *myTCNT1 = start;
+   *myTCCR1B |= (0x01 << 1) | (0x01 << 0);
+   while ((*myTIFR1 & 0x01) == 0);
+   *myTCCR1B = 0x00;
+   *myTIFR1 |= 0X01;
 }
 
 /* Serial port initialization
