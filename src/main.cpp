@@ -158,7 +158,7 @@ volatile bool displayTH = false;
 volatile bool waterMonitor = false;
 volatile bool needClear = false;
 volatile unsigned int waterThreshold = 40; // value to change
-volatile unsigned int tempThreshold = 24;  // value to change
+volatile unsigned int tempThreshold = 30;  // value to change
 
 void setup()
 {
