@@ -222,7 +222,7 @@ void loop()
       pressDuration = millis() - startTime;
       if (pressDuration > 3000) // long press
       {
-         printMessage((unsigned char *)"Interrupt button held (resetting)\0");
+         printMessage((unsigned char *)"\nInterrupt button held (resetting)\0");
          putChar(currentState);
          displayTimeStamp();
          setup(); // not sure if its required
@@ -232,14 +232,14 @@ void loop()
       {
          if (currentState == DISABLED)
          {
-            printMessage((unsigned char *)"Interrupt button pressed (starting)\0");
+            printMessage((unsigned char *)"\nInterrupt button pressed (starting)\0");
             putChar(currentState);
             displayTimeStamp();
             currentState = IDLE;
          }
          else
          {
-            printMessage((unsigned char *)"Interrupt button pressed (disabling)\0");
+            printMessage((unsigned char *)"\nInterrupt button pressed (disabling)\0");
             putChar(currentState);
             displayTimeStamp();
             currentState = DISABLED;
@@ -271,7 +271,7 @@ void loop()
    char buffer[4];
    itoa(waterVal, buffer, 10); // Convert waterVal to a string
    printMessage((unsigned char *)buffer);
-   putChar(' ');
+   putChar('\n');
    stateCheck(waterVal, tempVal);
    if (currentState != previousState)
    {
