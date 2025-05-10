@@ -119,3 +119,12 @@ It is used to take in heat and dump it outside. It is the black thing with a rec
 ![image of circuit](extras/1cpe301finalwiringdiagram-1.png)
 
 </details>
+
+## System Demonstration
+
+[![video of a swamp cooler project demonstration](https://img.youtube.com/vi/Vm3F59e2kbA/0.jpg)](https://www.youtube.com/watch?v=Vm3F59e2kbA)
+
+## Team Members
+The team consists of the burnt out students: Aaron Ba, William Toohey, Sean Lai
+
+All credit of the physical circuitry goes to William Toohey, along with some of the code. Aaron Ba and Sean Lai revamped the code.
