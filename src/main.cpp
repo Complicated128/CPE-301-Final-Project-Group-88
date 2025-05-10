@@ -1,3 +1,11 @@
+/**
+ * @file main.cpp
+ * @author Aaron Ba, William Toohey, Sean Lai
+ * @brief Swamp cooler code for making it run properly
+ * @version DONE
+ * @date 2025-05-09
+ */
+
 #include <Arduino.h>
 #include <LiquidCrystal.h>
 #include <RTClib.h>
