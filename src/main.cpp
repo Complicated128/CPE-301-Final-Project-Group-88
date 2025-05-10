@@ -139,7 +139,7 @@ unsigned int adc_read(unsigned char);
 void printMessage(unsigned char[]); // print strings
 void putChar(unsigned char);        // smaller version of printMessage
 void handleInterrupt();
-void displayTimeStamp();
+void displayTimeStamp(unsigned char*);
 void displayTempAndHum(unsigned int, unsigned int);
 void stateCheck(unsigned int, unsigned int);
 
@@ -222,8 +222,7 @@ void loop()
       if (pressDuration > 3000) // long press
       {
          printMessage((unsigned char *)"\nInterrupt button held (resetting)\0");
-         putChar(currentState);
-         displayTimeStamp();
+         displayTimeStamp((unsigned char*)currentState);
          setup(); // not sure if its required
          currentState = IDLE;
       }
@@ -232,15 +231,13 @@ void loop()
          if (currentState == DISABLED)
          {
             printMessage((unsigned char *)"\nInterrupt button pressed (starting)\0");
-            putChar(currentState);
-            displayTimeStamp();
+            displayTimeStamp((unsigned char*)currentState);
             currentState = IDLE;
          }
          else
          {
             printMessage((unsigned char *)"\nInterrupt button pressed (disabling)\0");
-            putChar(currentState);
-            displayTimeStamp();
+            displayTimeStamp((unsigned char*)currentState);
             currentState = DISABLED;
          }
       }
@@ -274,9 +271,7 @@ void loop()
    stateCheck(waterVal, tempVal);
    if (currentState != previousState)
    {
-      putChar(currentState);
-      putChar(' ');
-      displayTimeStamp();
+      displayTimeStamp((unsigned char*)currentState);
       previousState = currentState;
    }
    // Change the currentState of the system
@@ -318,6 +313,7 @@ void loop()
       {
          lcd.clear();
          lcd.print("Error: Low Water Level");
+         displayTimeStamp((unsigned char*)currentState);
          needClear = false;
       }
       fanOn = false;
@@ -367,8 +363,7 @@ void loop()
          // Move the stepper motor clockwise
          myStepper.step(-10);
          msTimerDelay(50);
-         putChar('R');
-         displayTimeStamp();
+         displayTimeStamp((unsigned char*)"R-Motor");
       }
       // Check if the left stepper button is pressed
       else if (*pinb & (0x01 << 6))
@@ -376,8 +371,7 @@ void loop()
          // Move the stepper motor counterclockwise
          myStepper.step(10);
          msTimerDelay(50);
-         putChar('L');
-         displayTimeStamp();
+         displayTimeStamp((unsigned char*)"L-Motor");
       }
    }
 }
@@ -471,12 +465,14 @@ void handleInterrupt()
    }
 }
 
-void displayTimeStamp()
+void displayTimeStamp(unsigned char* msg)
 {
    DateTime now = rtc.now();
    String date;
-   char format[] = "YYYY-MM-DD hh:mm:ss\n";
+   char format[] = "\nYYYY-MM-DD hh:mm:ss\n";
    date = now.toString(format);
+   printMessage(msg);
+   putChar(' ');
    printMessage((unsigned char *)format);
    // TODO: LCD
 }
