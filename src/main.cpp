@@ -205,7 +205,7 @@ void setup()
    *porth &= ~(0x01 << 4);
 
    // interrupt setup
-   attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), handleInterrupt, RISING);
+   attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), handleInterrupt, CHANGE);
 
    myStepper.setSpeed(25);
 
@@ -219,7 +219,6 @@ void loop()
 {
    if (interruptBtn) // interrupt triggered
    {
-      pressDuration = millis() - startTime;
       if (pressDuration > 3000) // long press
       {
          printMessage((unsigned char *)"\nInterrupt button held (resetting)\0");
@@ -463,6 +462,11 @@ void handleInterrupt()
    {
       buttonPressed = true;
       startTime = millis();
+   }
+   else
+   {
+      buttonPressed = false;
+      pressDuration = millis() - startTime;
       interruptBtn = true;
    }
 }
