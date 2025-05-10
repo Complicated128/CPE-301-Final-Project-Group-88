@@ -96,25 +96,15 @@ volatile unsigned char *myADCSRB = (unsigned char *)0x7B;
 volatile unsigned char *myADCSRA = (unsigned char *)0x7A;
 volatile unsigned int *myADC_DATA = (unsigned int *)0x78;
 
-// // Stepper motor pins and configuration
-// #define STEPS_PER_REV 2048
-// #define STEPPER_PIN1 43
-// #define STEPPER_PIN2 45
-// #define STEPPER_PIN3 47
-// #define STEPPER_PIN4 49
-
-// // Initialize stepper library
-// Stepper myStepper(STEPS_PER_REV, STEPPER_PIN1, STEPPER_PIN3, STEPPER_PIN2, STEPPER_PIN4);
-
 // Stepper motor pins and configuration
-const int stepsPerRevolution = 2048; // 28BYJ-48 stepper has 2048 steps per revolution
-const int stepper1Pin = 43;          // IN1
-const int stepper2Pin = 45;          // IN2
-const int stepper3Pin = 47;          // IN3
-const int stepper4Pin = 49;          // IN4
+#define STEPS_PER_REV 2048
+#define STEPPER_PIN1 43
+#define STEPPER_PIN2 45
+#define STEPPER_PIN3 47
+#define STEPPER_PIN4 49
 
 // Initialize stepper library
-Stepper myStepper(stepsPerRevolution, stepper1Pin, stepper3Pin, stepper2Pin, stepper4Pin);
+Stepper myStepper(STEPS_PER_REV, STEPPER_PIN1, STEPPER_PIN3, STEPPER_PIN2, STEPPER_PIN4);
 
 // Initialize the liquid crystal display
 #define LC_RS 29
@@ -129,7 +119,7 @@ LiquidCrystal lcd(LC_RS, LC_EN, LC_D4, LC_D5, LC_D6, LC_D7);
 RTC_DS1307 rtc;
 
 // Initialize DHT
-DHT dht(25, DHT11);
+DHT dht(25, DHT11); // pin 25 contains DHT
 
 // States the system will be in
 enum SystemState
@@ -255,6 +245,7 @@ void loop()
             currentState = DISABLED;
          }
       }
+      buttonPressed = false;
       interruptBtn = false;
    }
    putChar(currentState);
@@ -370,7 +361,7 @@ void loop()
 
    // Only allows the stepper motor to be controlled when the system is not in a DISABLED state
    if (currentState != DISABLED)
-   { // TODO: Broken
+   {
       // Check if the right stepper button is pressed
       if (*pinb & (0x01 << 7))
       {
@@ -395,11 +386,12 @@ void loop()
 void msTimerDelay(unsigned long ms)
 {
    *myTCCR1A = *myTCCR1B = 0x00;
-   unsigned long ticks = (unsigned long)(ms*250);
+   unsigned long ticks = (unsigned long)(ms * 250);
    unsigned int start = 65536 - ticks;
    *myTCNT1 = start;
    *myTCCR1B |= (0x01 << 1) | (0x01 << 0);
-   while ((*myTIFR1 & 0x01) == 0);
+   while ((*myTIFR1 & 0x01) == 0)
+      ;
    *myTCCR1B = 0x00;
    *myTIFR1 |= 0X01;
 }
@@ -500,15 +492,18 @@ void displayTempAndHum(unsigned int temp, unsigned int hum)
 
 void stateCheck(unsigned int waterLevel, unsigned int tempLevel)
 {
-   if (tempLevel > tempThreshold && currentState != ERROR) // temp higher than expected, run
+   if (currentState != ERROR)
    {
-      currentState = RUNNING;
-      needClear = true;
-   }
-   else if (tempLevel <= tempThreshold && currentState != ERROR) // temp lower than expected, idle
-   {
-      currentState = IDLE;
-      needClear = true;
+      if (tempLevel > tempThreshold) // temp higher than expected, run
+      {
+         currentState = RUNNING;
+         needClear = true;
+      }
+      else
+      {
+         currentState = IDLE;
+         needClear = true;
+      }
    }
    if (waterLevel <= waterThreshold) // water lower than expected, error
    {
