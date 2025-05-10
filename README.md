@@ -15,6 +15,7 @@ The final project is a physical swamp cooler. The swamp container contains these
 7. DHT11 (Temperature Sensor)
 8. ATMega2560
 9. 12V 40CFM DC Blowerfan
+10. Peristaltic Motor
 
 ## Circuit Details
 
@@ -107,6 +108,15 @@ It is used to control the whole circuit. It is underneath the breadboard.
 It is used to take in heat and dump it outside. It is the black thing with a rectangular shape.
 
 ![image of circuit](extras/buildPhotos/1_fanexhaust.jpg)
+
+</details>
+
+<details>
+<summary>Peristaltic Motor</summary>
+<br>
+It is used to pump water to the cooler pad. It can be found underneat the Blowerfan.
+
+![image of circuit](extras/buildPhotos/1_insideinprogress.jpg)
 
 </details>
 
