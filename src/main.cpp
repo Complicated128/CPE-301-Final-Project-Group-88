@@ -107,11 +107,11 @@ volatile unsigned int *myADC_DATA = (unsigned int *)0x78;
 // Stepper myStepper(STEPS_PER_REV, STEPPER_PIN1, STEPPER_PIN3, STEPPER_PIN2, STEPPER_PIN4);
 
 // Stepper motor pins and configuration
-const int stepsPerRevolution = 2048;  // 28BYJ-48 stepper has 2048 steps per revolution
-const int stepper1Pin = 43;           // IN1
-const int stepper2Pin = 45;           // IN2
-const int stepper3Pin = 47;           // IN3
-const int stepper4Pin = 49;           // IN4
+const int stepsPerRevolution = 2048; // 28BYJ-48 stepper has 2048 steps per revolution
+const int stepper1Pin = 43;          // IN1
+const int stepper2Pin = 45;          // IN2
+const int stepper3Pin = 47;          // IN3
+const int stepper4Pin = 49;          // IN4
 
 // Initialize stepper library
 Stepper myStepper(stepsPerRevolution, stepper1Pin, stepper3Pin, stepper2Pin, stepper4Pin);
@@ -158,7 +158,6 @@ void msTimerDelay(unsigned int); // TODO?
 volatile bool buttonPressed = false;
 volatile unsigned long startTime = 0;
 volatile unsigned long pressDuration = 0;
-volatile bool buttonHold = false;
 
 // Global variables
 SystemState currentState = IDLE;
@@ -170,7 +169,7 @@ volatile bool displayTH = false;
 volatile bool waterMonitor = false;
 volatile bool needClear = false;
 volatile unsigned int waterThreshold = 40; // value to change
-volatile unsigned int tempThreshold = 25;   // value to change
+volatile unsigned int tempThreshold = 24;  // value to change
 
 void setup()
 {
@@ -232,27 +231,31 @@ void loop()
 {
    if (interruptBtn)
    {
-      if (currentState == DISABLED)
-      {
-         printMessage((unsigned char *)"Interrupt button pressed (starting)\0");
-         putChar(currentState);
-         displayTimeStamp();
-         currentState = IDLE;
-      }
-      else
-      {
-         printMessage((unsigned char *)"Interrupt button pressed (disabling)\0");
-         putChar(currentState);
-         displayTimeStamp();
-         currentState = DISABLED;
-      }
-      if (buttonHold && currentState == ERROR)
+      pressDuration = millis() - startTime;
+      if (pressDuration >= 3000) // long press
       {
          printMessage((unsigned char *)"Interrupt button held (resetting)\0");
          putChar(currentState);
          displayTimeStamp();
          setup(); // not sure if its required
          currentState = IDLE;
+      }
+      else // short press
+      {
+         if (currentState == DISABLED)
+         {
+            printMessage((unsigned char *)"Interrupt button pressed (starting)\0");
+            putChar(currentState);
+            displayTimeStamp();
+            currentState = IDLE;
+         }
+         else
+         {
+            printMessage((unsigned char *)"Interrupt button pressed (disabling)\0");
+            putChar(currentState);
+            displayTimeStamp();
+            currentState = DISABLED;
+         }
       }
       interruptBtn = false;
    }
@@ -397,18 +400,20 @@ void setup_timer_regs() // TODO: setup hold event for ISR
 
 unsigned int currentTicks = 65535;
 
-ISR(TIMER1_OVF_vect) {
-  // Stop the Timer
-  *myTCCR1B &= 0xF8;
-  // Load the Count
-  *myTCNT1 = (unsigned int)(65535 - (unsigned long)(currentTicks));
-  // Start the Timer PRESCALAR 8
-  *myTCCR1B |= 0x02;
-  // if it's not the STOP amount
-  if (currentTicks != 65535) {
-    // XOR to toggle PB6
-    *portb ^= 0x40;
-  }
+ISR(TIMER1_OVF_vect)
+{
+   // Stop the Timer
+   *myTCCR1B &= 0xF8;
+   // Load the Count
+   *myTCNT1 = (unsigned int)(65535 - (unsigned long)(currentTicks));
+   // Start the Timer PRESCALAR 8
+   *myTCCR1B |= 0x02;
+   // if it's not the STOP amount
+   if (currentTicks != 65535)
+   {
+      // XOR to toggle PB6
+      *portb ^= 0x40;
+   }
 }
 
 /* Serial port initialization
@@ -451,7 +456,8 @@ unsigned int adc_read(unsigned char adc_num)
    *myADCSRB &= 0xDF;            // clear MUX5
    *myADMUX |= (adc_num & 0x1F); // channel 0 selection
    *myADCSRA |= 0x40;            // conversion
-   while ((*myADCSRA & 0x40) != 0);
+   while ((*myADCSRA & 0x40) != 0)
+      ;
    unsigned int val = *myADC_DATA;
    return val;
 }
@@ -471,39 +477,12 @@ void putChar(unsigned char U0pdata)
    *myUDR0 = U0pdata;
 }
 
-//ISR
 void handleInterrupt()
 {
-   // Stop the Timer
-   *myTCCR1B &= 0xF8;
-   // Load the Count
-   *myTCNT1 = (unsigned int)(65535 - (unsigned long)(pressDuration * 2)); // Example scaling
-   // Start the Timer PRESCALAR 8
-   *myTCCR1B |= 0x02;
-   // Check if the timer count is not the maximum value
-   if (pressDuration * 2 != 65535)
-   {
-      // XOR to toggle PB6
-      *portb ^= 0x40;
-   }
-
-   if (!buttonPressed) // will be true, button pressed
+   if (!buttonPressed)
    {
       buttonPressed = true;
       startTime = millis();
-   }
-   else // button released
-   {
-      buttonPressed = false;
-      pressDuration = millis() - startTime;
-      if (pressDuration >= 3000)
-      {
-         buttonHold = true;
-      }
-      else
-      {
-         buttonHold = false;
-      }
       interruptBtn = true;
    }
 }
@@ -537,7 +516,7 @@ void stateCheck(unsigned int waterLevel, unsigned int tempLevel)
    {
       currentState = RUNNING;
       needClear = true;
-   } 
+   }
    else if (tempLevel <= tempThreshold && currentState != ERROR) // temp lower than expected, idle
    {
       currentState = IDLE;
