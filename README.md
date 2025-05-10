@@ -109,3 +109,13 @@ It is used to take in heat and dump it outside. It is the black thing with a rec
 ![image of circuit](extras/buildPhotos/1_fanexhaust.jpg)
 
 </details>
+
+## Schematic Diagram
+
+<details>
+<summary>The diagram in question</summary>
+<br>
+
+![image of circuit](extras/1cpe301finalwiringdiagram-1.png)
+
+</details>
