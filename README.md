@@ -126,7 +126,7 @@ It is used to pump water to the cooler pad. It can be found underneat the Blower
 <summary>The diagram in question</summary>
 <br>
 
-![image of circuit](extras/1cpe301finalwiringdiagram-1.png)
+![image of circuit](extras/cpe301finalwiringdiagram-1.png)
 
 </details>
 
@@ -139,3 +139,7 @@ Clicking upon this will redirect you to this link: https://www.youtube.com/watch
 The team consists of the burnt out students: Aaron Ba, William Toohey, Sean Lai
 
 All credit of the physical circuitry goes to William Toohey, along with some of the code. Aaron Ba and Sean Lai revamped the code.
+
+## Extra Stuff
+
+Check out the "extras" folder as it has many more photos of the circuit, and the physical build. It also includes the final report and the wiring diagram. 
